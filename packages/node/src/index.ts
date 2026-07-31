@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 
 export interface RunOptions {
@@ -87,8 +87,37 @@ function buildJsonArgs(path: string, options: JsonOptions): string[] {
   return args
 }
 
+declare const __dirname: string | undefined
+
+async function resolveBundledMacePath(): Promise<string | undefined> {
+  const targets: Record<string, string> = {
+    'darwin-x64': 'darwin-amd64',
+    'darwin-arm64': 'darwin-arm64',
+    'linux-x64': 'linux-amd64',
+    'linux-arm64': 'linux-arm64',
+    'win32-x64': 'windows-amd64',
+    'win32-arm64': 'windows-arm64',
+  }
+  const target = targets[`${process.platform}-${process.arch}`]
+  if (!target) {
+    return undefined
+  }
+
+  const executable = process.platform === 'win32' ? 'mace.exe' : 'mace'
+  const moduleDirectory = typeof __dirname === 'string'
+    ? __dirname
+    : dirname(decodeURIComponent(new URL(import.meta.url).pathname).replace(/^\/(\w:)/, '$1'))
+  const path = join(moduleDirectory, '..', 'bin', target, executable)
+  try {
+    await access(path)
+    return path
+  } catch {
+    return undefined
+  }
+}
+
 async function runMace(args: string[], options: RunOptions): Promise<string> {
-  const command = options.macePath ?? 'mace'
+  const command = options.macePath ?? await resolveBundledMacePath() ?? 'mace'
 
   return new Promise<string>((resolve, reject) => {
     const process = spawn(command, args, {

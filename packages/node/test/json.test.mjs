@@ -9,8 +9,6 @@ import { json } from '../dist/index.js'
 const macePath = process.env.MACE_PATH
 
 test('passes runtime input to the Mace CLI', async (context) => {
-  assert.ok(macePath, 'set MACE_PATH to a built mace executable')
-
   const directory = await mkdtemp(join(tmpdir(), 'mace-node-test-'))
   context.after(() => rm(directory, { recursive: true, force: true }))
 
@@ -24,10 +22,12 @@ schema Runtime: { env: string, };
 }
 `)
 
-  const result = await json(path, {
-    input: '{ env: "prod", }',
-    macePath,
-  })
+  const options = { input: '{ env: "prod", }' }
+  if (macePath) {
+    options.macePath = macePath
+  }
+
+  const result = await json(path, options)
 
   assert.deepEqual(result, { env: 'prod' })
 })

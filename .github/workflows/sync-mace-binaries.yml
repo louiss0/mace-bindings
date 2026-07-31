@@ -1,0 +1,124 @@
+name: Sync Mace binaries
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Mace release version to bundle, without the v prefix
+        required: true
+        default: 1.0.0
+        type: string
+  repository_dispatch:
+    types:
+      - mace-release
+
+permissions:
+  contents: write
+
+env:
+  MACE_REPOSITORY: louiss0/mace
+
+jobs:
+  sync:
+    name: Sync Mace ${{ inputs.version || github.event.client_payload.version }} binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out bindings
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release version
+        id: release
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          DISPATCH_VERSION: ${{ github.event.client_payload.version }}
+        run: |
+          set -euo pipefail
+
+          version="${INPUT_VERSION:-${DISPATCH_VERSION:-}}"
+          version="${version#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Expected a semantic version, received '$version'." >&2
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Download and stage release binaries
+        shell: bash
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          rm -rf bin packages/node/bin packages/python/src/mace_python/bin
+          mkdir -p bin packages/node/bin packages/python/src/mace_python/bin
+
+          targets=(
+            "darwin amd64 mace"
+            "darwin arm64 mace"
+            "linux amd64 mace"
+            "linux arm64 mace"
+            "windows amd64 mace.exe"
+            "windows arm64 mace.exe"
+          )
+
+          for target in "${targets[@]}"; do
+            read -r goos goarch executable <<< "$target"
+            platform="$goos-$goarch"
+            archive="mace_${VERSION}_${goos}_${goarch}"
+            temporary_directory="$(mktemp -d)"
+
+            if [[ "$goos" == windows ]]; then
+              archive_path="$temporary_directory/$archive.zip"
+              curl --fail --location --silent --show-error \
+                "https://github.com/${MACE_REPOSITORY}/releases/download/v${VERSION}/${archive}.zip" \
+                --output "$archive_path"
+              unzip -q "$archive_path" -d "$temporary_directory/extracted"
+            else
+              archive_path="$temporary_directory/$archive.tar.gz"
+              curl --fail --location --silent --show-error \
+                "https://github.com/${MACE_REPOSITORY}/releases/download/v${VERSION}/${archive}.tar.gz" \
+                --output "$archive_path"
+              mkdir -p "$temporary_directory/extracted"
+              tar -xzf "$archive_path" -C "$temporary_directory/extracted"
+            fi
+
+            source_path="$(find "$temporary_directory/extracted" -type f -name "$executable" -print -quit)"
+            if [[ -z "$source_path" ]]; then
+              echo "The $archive archive did not contain $executable." >&2
+              exit 1
+            fi
+
+            for destination_root in bin packages/node/bin packages/python/src/mace_python/bin; do
+              destination="$destination_root/$platform"
+              mkdir -p "$destination"
+              cp "$source_path" "$destination/$executable"
+              chmod 0755 "$destination/$executable"
+            done
+
+            rm -rf "$temporary_directory"
+          done
+
+          printf 'v%s\n' "$VERSION" > bin/version
+
+      - name: Commit synchronized binaries
+        shell: bash
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bin packages/node/bin packages/python/src/mace_python/bin
+
+          if git diff --cached --quiet; then
+            echo "Mace v${VERSION} is already synchronized."
+            exit 0
+          fi
+
+          git commit -m "chore(bindings): sync Mace binaries v${VERSION}"
+          git push origin HEAD:main

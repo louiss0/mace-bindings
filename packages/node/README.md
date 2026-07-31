@@ -4,9 +4,9 @@ Official Node.js bindings for Mace.
 
 ## Status
 
-This package currently wraps the `mace` CLI from this repository.
-It is intended as the first official Node binding surface while the core
-language remains implemented in Go.
+This package provides a Node.js API around the `mace` CLI. Supported release
+binaries are included in the package and selected automatically for the current
+platform. Pass `macePath` when a project needs a different Mace executable.
 
 ## Development
 
@@ -41,3 +41,6 @@ const formatted = await output('./config.mace')
 - `importYaml(input, options?)`
 - `importToml(input, options?)`
 - `importFile(path, options?)`
+
+`macePath` is optional; the package uses its bundled platform binary when it is
+not provided.

@@ -9,7 +9,6 @@ from mace_python import json
 class ClientTest(unittest.TestCase):
     def test_passes_runtime_input_to_the_mace_cli(self) -> None:
         mace_path = os.environ.get("MACE_PATH")
-        self.assertIsNotNone(mace_path, "set MACE_PATH to a built mace executable")
 
         with tempfile.TemporaryDirectory(prefix="mace-python-test-") as directory:
             path = Path(directory) / "runtime.mace"
@@ -25,7 +24,10 @@ schema Runtime: { env: string, };
                 encoding="utf-8",
             )
 
-            result = json(str(path), input='{ env: "prod", }', mace_path=mace_path)
+            if mace_path:
+                result = json(str(path), input='{ env: "prod", }', mace_path=mace_path)
+            else:
+                result = json(str(path), input='{ env: "prod", }')
 
         self.assertEqual({"env": "prod"}, result)
 
