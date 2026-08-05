@@ -1,12 +1,29 @@
 import assert from 'node:assert/strict'
+import { execFile } from 'node:child_process'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { promisify } from 'node:util'
 import test from 'node:test'
 
 import { importJson, json, jsonText, MaceError, output, parse, transform } from '../dist/index.js'
 
 const macePath = process.env.MACE_PATH
+const executeFile = promisify(execFile)
+
+function bundledMacePath() {
+  const targets = {
+    'darwin-x64': 'darwin-amd64',
+    'darwin-arm64': 'darwin-arm64',
+    'linux-x64': 'linux-amd64',
+    'linux-arm64': 'linux-arm64',
+    'win32-x64': 'windows-amd64',
+    'win32-arm64': 'windows-arm64',
+  }
+  const target = targets[`${process.platform}-${process.arch}`]
+  const executable = process.platform === 'win32' ? 'mace.exe' : 'mace'
+  return target ? join(import.meta.dirname, '..', 'bin', target, executable) : 'mace'
+}
 
 test('passes runtime input to the Mace CLI', async (context) => {
   const directory = await mkdtemp(join(tmpdir(), 'mace-node-test-'))
@@ -26,6 +43,10 @@ schema Runtime: { env: string, };
   if (macePath) {
     options.macePath = macePath
   }
+
+  const command = macePath ?? bundledMacePath()
+  const { stdout } = await executeFile(command, ['output', path])
+  console.log('Mace CLI runtime output:', stdout.trim())
 
   const result = await json(path, options)
 
@@ -47,8 +68,12 @@ int base = 2 + 2;
 { name: "Mace", total: base, }`), { name: 'Mace', total: 4 })
   assert.deepEqual(await transform('{ name: "Mace", }', options), { name: 'Mace' })
   assert.deepEqual(await jsonText(path, options), { name: 'Mace' })
+  const command = macePath ?? bundledMacePath()
+  const { stdout } = await executeFile(command, ['output', path])
+  console.log('Mace CLI output:', stdout.trim())
+
   const outputRecord = await output(path, options)
-  console.log('Mace output:', outputRecord)
+  console.log('Mace parsed output:', outputRecord)
   assert.deepEqual(outputRecord, { name: 'Mace' })
   assert.deepEqual(await importJson('{"name":"Mace"}', options), { name: 'Mace' })
 })

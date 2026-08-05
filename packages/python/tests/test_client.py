@@ -1,9 +1,26 @@
 import os
+import platform
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 from mace_python import MaceError, import_json, json, json_text, output, parse, transform
+
+
+def bundled_mace_path() -> str:
+    targets = {
+        ("darwin", "x86_64"): "darwin-amd64",
+        ("darwin", "arm64"): "darwin-arm64",
+        ("linux", "x86_64"): "linux-amd64",
+        ("linux", "aarch64"): "linux-arm64",
+        ("win32", "AMD64"): "windows-amd64",
+        ("win32", "ARM64"): "windows-arm64",
+    }
+    target = targets[(sys.platform, platform.machine())]
+    executable = "mace.exe" if sys.platform == "win32" else "mace"
+    return str(Path(__file__).parents[1] / "src" / "mace_python" / "bin" / target / executable)
 
 
 class ClientTest(unittest.TestCase):
@@ -23,6 +40,14 @@ schema Runtime: { env: string, };
 """,
                 encoding="utf-8",
             )
+
+            completed = subprocess.run(
+                [mace_path or bundled_mace_path(), "output", str(path)],
+                capture_output=True,
+                check=True,
+                text=True,
+            )
+            print("Mace CLI runtime output:", completed.stdout.strip())
 
             if mace_path:
                 result = json(str(path), input='{ env: "prod", }', mace_path=mace_path)
@@ -44,8 +69,16 @@ schema Runtime: { env: string, };
             )
             self.assertEqual({"name": "Mace"}, transform('{ name: "Mace", }', mace_path=mace_path))
             self.assertEqual({"name": "Mace"}, json_text(str(path), mace_path=mace_path))
+            completed = subprocess.run(
+                [mace_path or bundled_mace_path(), "output", str(path)],
+                capture_output=True,
+                check=True,
+                text=True,
+            )
+            print("Mace CLI output:", completed.stdout.strip())
+
             output_record = output(str(path), mace_path=mace_path)
-            print("Mace output:", output_record)
+            print("Mace parsed output:", output_record)
             self.assertEqual({"name": "Mace"}, output_record)
             self.assertEqual({"name": "Mace"}, import_json('{"name":"Mace"}', mace_path=mace_path))
 
