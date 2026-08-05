@@ -5,18 +5,18 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { afterEach, expect, test } from 'vitest'
 
-import { importJson, json, jsonText, MaceError, output, transform } from '../dist/index.js'
+import { importJson, json, jsonText, output, transform } from '../src/index.ts'
 
 const macePath = process.env.MACE_PATH
 const executeFile = promisify(execFile)
-const cleanupTasks = []
+const cleanupTasks: Array<() => Promise<void>> = []
 
 afterEach(async () => {
   await Promise.all(cleanupTasks.splice(0).map((cleanup) => cleanup()))
 })
 
 function bundledMacePath() {
-  const targets = {
+  const targets: Record<string, string> = {
     'darwin-x64': 'darwin-amd64',
     'darwin-arm64': 'darwin-arm64',
     'linux-x64': 'linux-amd64',
