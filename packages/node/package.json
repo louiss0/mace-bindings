@@ -23,13 +23,14 @@
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
-    "test": "node --test test/json.test.mjs",
+    "test": "pnpm run build && vitest run",
     "dev": "vite",
     "preview": "vite preview"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
     "typescript": "~6.0.2",
-    "vite": "^8.0.4"
+    "vite": "^8.0.4",
+    "vitest": "^4.0.18"
   }
 }
