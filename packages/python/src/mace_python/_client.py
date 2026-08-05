@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json as json_module
 import platform
 import re
 import subprocess
@@ -8,7 +7,9 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TypeAlias, cast
+from typing import TypeAlias
+
+from ._parser import parse_mace
 
 
 type MaceValue = str | int | float | bool | list[MaceValue] | MaceRecord
@@ -43,15 +44,23 @@ class MaceError(RuntimeError):
 
 
 def json(path: str, input: str | None = None, mace_path: str | None = None, cwd: str | None = None) -> MaceRecord:
-    output = _run_mace(_json_args(path, input), mace_path=mace_path, cwd=cwd)
-    return _transform_json_output(output)
+    source = _run_mace(["output", path], mace_path=mace_path, cwd=cwd)
+    return parse(source, input=input)
+
+
+def parse(source: str, input: str | None = None) -> MaceRecord:
+    try:
+        return parse_mace(source, input)
+    except ValueError as error:
+        raise MaceError(str(error)) from error
 
 
 def transform(source: str, input: str | None = None, mace_path: str | None = None, cwd: str | None = None) -> MaceRecord:
     with tempfile.TemporaryDirectory(prefix="mace-python-source-") as directory:
         path = Path(directory) / "source.mace"
         path.write_text(source, encoding="utf-8")
-        return json(str(path), input=input, mace_path=mace_path, cwd=cwd)
+        formatted = _run_mace(["output", str(path)], mace_path=mace_path, cwd=cwd)
+        return parse(formatted, input=input)
 
 
 def json_text(path: str, input: str | None = None, mace_path: str | None = None, cwd: str | None = None) -> MaceRecord:
@@ -60,7 +69,7 @@ def json_text(path: str, input: str | None = None, mace_path: str | None = None,
 
 def output(path: str, mace_path: str | None = None, cwd: str | None = None) -> MaceRecord:
     source = _run_mace(["output", path], mace_path=mace_path, cwd=cwd)
-    return transform(source, mace_path=mace_path, cwd=cwd)
+    return parse(source)
 
 
 def import_json(input_text: str, mace_path: str | None = None, cwd: str | None = None) -> MaceRecord:
@@ -92,16 +101,6 @@ def _import_text(name: str, input_text: str, mace_path: str | None, cwd: str | N
         path.write_text(input_text, encoding="utf-8")
         return import_file(str(path), mace_path=mace_path, cwd=cwd)
 
-
-def _transform_json_output(output: str) -> MaceRecord:
-    return cast(MaceRecord, json_module.loads(output))
-
-
-def _json_args(path: str, input: str | None) -> list[str]:
-    args = ["json", path]
-    if input is not None:
-        args.extend(["--input", input])
-    return args
 
 
 def _bundled_mace_path() -> str | None:
@@ -165,6 +164,6 @@ def _diagnostic_from_message(message: str, path: str | None = None) -> MaceDiagn
 
 
 def _source_path_from_args(args: list[str]) -> str | None:
-    if args[0] in {"json", "output", "import"}:
+    if args[0] in {"output", "import"}:
         return args[1]
     return None

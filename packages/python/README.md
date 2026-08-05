@@ -32,6 +32,7 @@ output_record = output("./config.mace")
 ## API
 
 - `json(path, input=None, mace_path=None, cwd=None) -> MaceRecord`
+- `parse(source, input=None) -> MaceRecord`
 - `transform(source, input=None, mace_path=None, cwd=None) -> MaceRecord`
 - `json_text(path, input=None, mace_path=None, cwd=None) -> MaceRecord`
 - `output(path, mace_path=None, cwd=None) -> MaceRecord`
@@ -45,12 +46,12 @@ binary when they are omitted.
 
 ## Records and errors
 
-`transform` is the Mace-string transformer: it writes source to a temporary
-`.mace` file, asks the CLI to parse and evaluate it, then converts the CLI JSON
-output into a native `MaceRecord`. `json_text` is retained as an alias for
-`json`; `output` transforms the CLI’s canonical Mace source; and `import_*`
-transforms the generated Mace source. A record contains strings, numbers,
-booleans, nested records, and lists.
+`parse` is the native Mace transformer. It evaluates Mace source into a
+`MaceRecord` without consuming CLI JSON output. `transform` first validates and
+canonicalizes source through the CLI, then passes that Mace text to `parse`.
+`json_text` is retained as an alias for `json`; `output` parses the CLI’s
+canonical Mace source; and `import_*` transforms generated Mace source. A
+record contains strings, numbers, booleans, nested records, and lists.
 
 CLI failures raise `MaceError`. Alongside `str(error)` and `exit_code`, its
 `diagnostic` provides a best-effort structured view of the CLI stderr:

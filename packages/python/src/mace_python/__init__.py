@@ -12,6 +12,7 @@ from ._client import (
     json,
     json_text,
     output,
+    parse,
     transform,
 )
 
@@ -29,5 +30,6 @@ __all__ = [
     "json",
     "json_text",
     "output",
+    "parse",
     "transform",
 ]

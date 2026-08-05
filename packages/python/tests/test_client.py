@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from mace_python import MaceError, import_json, json, json_text, output, transform
+from mace_python import MaceError, import_json, json, json_text, output, parse, transform
 
 
 class ClientTest(unittest.TestCase):
@@ -38,6 +38,10 @@ schema Runtime: { env: string, };
             path = Path(directory) / "config.mace"
             path.write_text('{ name: "Mace", }', encoding="utf-8")
 
+            self.assertEqual(
+                {"name": "Mace", "total": 4},
+                parse('|===|\nint base = 2 + 2;\n|===|\n{ name: "Mace", total: base, }'),
+            )
             self.assertEqual({"name": "Mace"}, transform('{ name: "Mace", }', mace_path=mace_path))
             self.assertEqual({"name": "Mace"}, json_text(str(path), mace_path=mace_path))
             self.assertEqual({"name": "Mace"}, output(str(path), mace_path=mace_path))

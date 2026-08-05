@@ -3,6 +3,8 @@ import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 
+import { parseMace } from './parser.js'
+
 export type RunOptions = {
   macePath?: string
   cwd?: string
@@ -46,12 +48,24 @@ export class MaceError extends Error {
 }
 
 export async function json(path: string, options: JsonOptions = {}): Promise<MaceRecord> {
-  const output = await runMace(buildJsonArgs(path, options), options)
-  return transformJsonOutput(output)
+  const source = await runMace(['output', path], options)
+  return parse(source, options)
+}
+
+export function parse(source: string, options: JsonOptions = {}): MaceRecord {
+  try {
+    return parseMace(source, options)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new MaceError(message, 1, diagnosticFromMessage(message))
+  }
 }
 
 export async function transform(source: string, options: JsonOptions = {}): Promise<MaceRecord> {
-  return withTempFile('source.mace', source, (path) => json(path, options))
+  return withTempFile('source.mace', source, async (path) => {
+    const formatted = await runMace(['output', path], options)
+    return parse(formatted, options)
+  })
 }
 
 export async function jsonText(path: string, options: JsonOptions = {}): Promise<MaceRecord> {
@@ -60,7 +74,7 @@ export async function jsonText(path: string, options: JsonOptions = {}): Promise
 
 export async function output(path: string, options: RunOptions = {}): Promise<MaceRecord> {
   const source = await runMace(['output', path], options)
-  return transform(source, options)
+  return parse(source, options)
 }
 
 export async function importJson(input: string, options: RunOptions = {}): Promise<MaceRecord> {
@@ -102,18 +116,6 @@ async function withTempFile<Result>(name: string, contents: string, action: (pat
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
-}
-
-function transformJsonOutput(output: string): MaceRecord {
-  return JSON.parse(output) as MaceRecord
-}
-
-function buildJsonArgs(path: string, options: JsonOptions): string[] {
-  const args = ['json', path]
-  if (options.input) {
-    args.push('--input', options.input)
-  }
-  return args
 }
 
 declare const __dirname: string | undefined
@@ -204,5 +206,5 @@ function diagnosticFromMessage(message: string, path?: string): MaceDiagnostic {
 }
 
 function sourcePathFromArgs(args: string[]): string | undefined {
-  return ['json', 'output', 'import'].includes(args[0]) ? args[1] : undefined
+  return ['output', 'import'].includes(args[0]) ? args[1] : undefined
 }

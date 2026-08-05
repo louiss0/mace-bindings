@@ -35,6 +35,7 @@ const outputRecord = await output('./config.mace')
 ## API
 
 - `json(path, { input?, macePath?, cwd? }?)` → `Promise<MaceRecord>`
+- `parse(source, { input? }?)` → `MaceRecord`
 - `transform(source, { input?, macePath?, cwd? }?)` → `Promise<MaceRecord>`
 - `jsonText(path, { input?, macePath?, cwd? }?)` → `Promise<MaceRecord>`
 - `output(path, options?)` → `Promise<MaceRecord>`
@@ -48,12 +49,12 @@ not provided.
 
 ## Records and errors
 
-`transform` is the Mace-string transformer: it writes source to a temporary
-`.mace` file, asks the CLI to parse and evaluate it, then converts the CLI JSON
-output into a native `MaceRecord`. `jsonText` is retained as an alias for
-`json`; `output` transforms the CLI’s canonical Mace source; and `import*`
-transforms the generated Mace source. A `MaceRecord` contains strings, numbers,
-booleans, nested records, and arrays.
+`parse` is the native Mace transformer. It evaluates Mace source into a
+`MaceRecord` without consuming CLI JSON output. `transform` first validates and
+canonicalizes source through the CLI, then passes that Mace text to `parse`.
+`jsonText` is retained as an alias for `json`; `output` parses the CLI’s
+canonical Mace source; and `import*` transforms generated Mace source. A
+`MaceRecord` contains strings, numbers, booleans, nested records, and arrays.
 
 CLI failures reject with `MaceError`. Alongside `message` and `exitCode`, its
 `diagnostic` provides a best-effort structured view of the CLI stderr:
