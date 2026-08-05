@@ -6,8 +6,8 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'MaceNode',
-      fileName: (format) => (format === 'es' ? 'index.js' : 'index.cjs'),
-      formats: ['es', 'cjs'],
+      fileName: 'index',
+      formats: ['es'],
     },
     rollupOptions: {
       external: ['node:child_process', 'node:fs/promises', 'node:os', 'node:path'],

@@ -1,6 +1,6 @@
 # @code-fixer-23/mace-node
 
-Official Node.js bindings for Mace.
+Official ESM-only Node.js bindings for Mace.
 
 ## Status
 
