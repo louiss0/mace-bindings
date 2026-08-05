@@ -47,7 +47,9 @@ int base = 2 + 2;
 { name: "Mace", total: base, }`), { name: 'Mace', total: 4 })
   assert.deepEqual(await transform('{ name: "Mace", }', options), { name: 'Mace' })
   assert.deepEqual(await jsonText(path, options), { name: 'Mace' })
-  assert.deepEqual(await output(path, options), { name: 'Mace' })
+  const outputRecord = await output(path, options)
+  console.log('Mace output:', outputRecord)
+  assert.deepEqual(outputRecord, { name: 'Mace' })
   assert.deepEqual(await importJson('{"name":"Mace"}', options), { name: 'Mace' })
 })
 

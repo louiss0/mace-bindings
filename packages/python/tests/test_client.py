@@ -44,7 +44,9 @@ schema Runtime: { env: string, };
             )
             self.assertEqual({"name": "Mace"}, transform('{ name: "Mace", }', mace_path=mace_path))
             self.assertEqual({"name": "Mace"}, json_text(str(path), mace_path=mace_path))
-            self.assertEqual({"name": "Mace"}, output(str(path), mace_path=mace_path))
+            output_record = output(str(path), mace_path=mace_path)
+            print("Mace output:", output_record)
+            self.assertEqual({"name": "Mace"}, output_record)
             self.assertEqual({"name": "Mace"}, import_json('{"name":"Mace"}', mace_path=mace_path))
 
     def test_exposes_a_diagnostic_when_mace_rejects_source(self) -> None:
