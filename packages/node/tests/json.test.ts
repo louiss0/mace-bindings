@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { afterEach, expect, test } from 'vitest'
 
-import { importJson, json, jsonText, output, transform } from '../src/index.ts'
+import { importJson, importToml, importYaml, json, jsonText, output, transform } from '../src/index.ts'
 
 const macePath = process.env.MACE_PATH
 const executeFile = promisify(execFile)
@@ -70,6 +70,8 @@ test('transforms every value operation into a record', async () => {
 
   await expect(output(path, options)).resolves.toEqual({ name: 'Mace' })
   await expect(importJson('{"name":"Mace"}', options)).resolves.toEqual({ name: 'Mace' })
+  await expect(importYaml('name: Mace', options)).resolves.toEqual({ name: 'Mace' })
+  await expect(importToml('name = "Mace"', options)).resolves.toEqual({ name: 'Mace' })
 })
 
 test('exposes a diagnostic when Mace rejects source', async () => {
