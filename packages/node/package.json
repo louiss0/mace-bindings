@@ -23,7 +23,7 @@
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
-    "test": "pnpm run build && vitest run",
+    "test": "vitest run",
     "dev": "vite",
     "preview": "vite preview"
   },
