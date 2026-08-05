@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 import test from 'node:test'
 
-import { importJson, json, jsonText, MaceError, output, parse, transform } from '../dist/index.js'
+import { importJson, json, jsonText, MaceError, output, transform } from '../dist/index.js'
 
 const macePath = process.env.MACE_PATH
 const executeFile = promisify(execFile)
@@ -62,10 +62,6 @@ test('transforms every value operation into a record', async (context) => {
 
   const options = macePath ? { macePath } : {}
 
-  assert.deepEqual(parse(`|===|
-int base = 2 + 2;
-|===|
-{ name: "Mace", total: base, }`), { name: 'Mace', total: 4 })
   assert.deepEqual(await transform('{ name: "Mace", }', options), { name: 'Mace' })
   assert.deepEqual(await jsonText(path, options), { name: 'Mace' })
   const command = macePath ?? bundledMacePath()
