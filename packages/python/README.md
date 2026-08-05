@@ -22,22 +22,38 @@ python -m uv build
 ## Usage
 
 ```python
-from mace_python import json, output
+from mace_python import json, output, transform
 
 value = json("./config.mace")
-formatted = output("./config.mace")
+inline_value = transform('{ name: "Mace", }')
+output_record = output("./config.mace")
 ```
 
 ## API
 
-- `json(path, input=None, mace_path=None, cwd=None)`
-- `json_text(path, input=None, mace_path=None, cwd=None)`
-- `output(path, mace_path=None, cwd=None)`
-- `nodes(path, mace_path=None, cwd=None)`
-- `import_json(input_text, mace_path=None, cwd=None)`
-- `import_yaml(input_text, mace_path=None, cwd=None)`
-- `import_toml(input_text, mace_path=None, cwd=None)`
-- `import_file(path, mace_path=None, cwd=None)`
+- `json(path, input=None, mace_path=None, cwd=None) -> MaceRecord`
+- `transform(source, input=None, mace_path=None, cwd=None) -> MaceRecord`
+- `json_text(path, input=None, mace_path=None, cwd=None) -> MaceRecord`
+- `output(path, mace_path=None, cwd=None) -> MaceRecord`
+- `import_json(input_text, mace_path=None, cwd=None) -> MaceRecord`
+- `import_yaml(input_text, mace_path=None, cwd=None) -> MaceRecord`
+- `import_toml(input_text, mace_path=None, cwd=None) -> MaceRecord`
+- `import_file(path, mace_path=None, cwd=None) -> MaceRecord`
 
 All `mace_path` arguments are optional; the package uses its bundled platform
 binary when they are omitted.
+
+## Records and errors
+
+`transform` is the Mace-string transformer: it writes source to a temporary
+`.mace` file, asks the CLI to parse and evaluate it, then converts the CLI JSON
+output into a native `MaceRecord`. `json_text` is retained as an alias for
+`json`; `output` transforms the CLI’s canonical Mace source; and `import_*`
+transforms the generated Mace source. A record contains strings, numbers,
+booleans, nested records, and lists.
+
+CLI failures raise `MaceError`. Alongside `str(error)` and `exit_code`, its
+`diagnostic` provides a best-effort structured view of the CLI stderr:
+`category`, `code`, `message`, `range.start.line`, `range.start.column`, and
+`path`. The current CLI text protocol does not always provide every field, so
+`category`, `code`, `range`, and `path` may be `None`.

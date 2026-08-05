@@ -1,13 +1,33 @@
-from ._client import MaceError, import_file, import_json, import_toml, import_yaml, json, json_text, nodes, output
+from ._client import (
+    MaceDiagnostic,
+    MaceError,
+    MacePosition,
+    MaceRecord,
+    MaceSourceRange,
+    MaceValue,
+    import_file,
+    import_json,
+    import_toml,
+    import_yaml,
+    json,
+    json_text,
+    output,
+    transform,
+)
 
 __all__ = [
+    "MaceDiagnostic",
     "MaceError",
+    "MacePosition",
+    "MaceRecord",
+    "MaceSourceRange",
+    "MaceValue",
     "import_file",
     "import_json",
     "import_toml",
     "import_yaml",
     "json",
     "json_text",
-    "nodes",
     "output",
+    "transform",
 ]

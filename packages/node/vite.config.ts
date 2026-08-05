@@ -10,7 +10,7 @@ export default defineConfig({
       formats: ['es', 'cjs'],
     },
     rollupOptions: {
-      external: ['node:child_process', 'node:fs/promises', 'node:path'],
+      external: ['node:child_process', 'node:fs/promises', 'node:os', 'node:path'],
     },
   },
 })

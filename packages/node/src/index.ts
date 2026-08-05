@@ -3,55 +3,79 @@ import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 
-export interface RunOptions {
+export type RunOptions = {
   macePath?: string
   cwd?: string
 }
 
-export interface JsonOptions extends RunOptions {
+export type JsonOptions = RunOptions & {
   input?: string
+}
+
+export type MaceValue = string | number | boolean | MaceValue[] | { [field: string]: MaceValue }
+
+export type MaceRecord = { [field: string]: MaceValue }
+
+export type MacePosition = {
+  line: number
+  column: number
+}
+
+export type MaceSourceRange = {
+  start: MacePosition
+}
+
+export type MaceDiagnostic = {
+  category?: string
+  code?: string
+  message: string
+  range?: MaceSourceRange
+  path?: string
 }
 
 export class MaceError extends Error {
   readonly exitCode: number
+  readonly diagnostic: MaceDiagnostic
 
-  constructor(message: string, exitCode = 1) {
+  constructor(message: string, exitCode = 1, diagnostic = diagnosticFromMessage(message)) {
     super(message)
     this.name = 'MaceError'
     this.exitCode = exitCode
+    this.diagnostic = diagnostic
   }
 }
 
-export async function json(path: string, options: JsonOptions = {}): Promise<unknown> {
+export async function json(path: string, options: JsonOptions = {}): Promise<MaceRecord> {
   const output = await runMace(buildJsonArgs(path, options), options)
-  return JSON.parse(output)
+  return transformJsonOutput(output)
 }
 
-export async function jsonText(path: string, options: JsonOptions = {}): Promise<string> {
-  return runMace(buildJsonArgs(path, options), options)
+export async function transform(source: string, options: JsonOptions = {}): Promise<MaceRecord> {
+  return withTempFile('source.mace', source, (path) => json(path, options))
 }
 
-export async function output(path: string, options: RunOptions = {}): Promise<string> {
-  return runMace(['output', path], options)
+export async function jsonText(path: string, options: JsonOptions = {}): Promise<MaceRecord> {
+  return json(path, options)
 }
 
-export async function nodes(path: string, options: RunOptions = {}): Promise<string> {
-  return runMace(['nodes', path], options)
+export async function output(path: string, options: RunOptions = {}): Promise<MaceRecord> {
+  const source = await runMace(['output', path], options)
+  return transform(source, options)
 }
 
-export async function importJson(input: string, options: RunOptions = {}): Promise<string> {
+export async function importJson(input: string, options: RunOptions = {}): Promise<MaceRecord> {
   return withTempFile('input.json', input, (path) => importFile(path, options))
 }
 
-export async function importYaml(input: string, options: RunOptions = {}): Promise<string> {
+export async function importYaml(input: string, options: RunOptions = {}): Promise<MaceRecord> {
   return withTempFile('input.yaml', input, (path) => importFile(path, options))
 }
 
-export async function importToml(input: string, options: RunOptions = {}): Promise<string> {
+export async function importToml(input: string, options: RunOptions = {}): Promise<MaceRecord> {
   return withTempFile('input.toml', input, (path) => importFile(path, options))
 }
 
-export async function importFile(path: string, options: RunOptions = {}): Promise<string> {
+export async function importFile(path: string, options: RunOptions = {}): Promise<MaceRecord> {
   const directory = await mkdtemp(join(tmpdir(), 'mace-node-import-'))
   try {
     const output = await runMace(['import', path, '--output-dir', directory], options)
@@ -61,13 +85,14 @@ export async function importFile(path: string, options: RunOptions = {}): Promis
       throw new MaceError('import did not report an output file')
     }
 
-    return await readFile(outputPath, 'utf8')
+    const source = await readFile(outputPath, 'utf8')
+    return await transform(source, options)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 }
 
-async function withTempFile(name: string, contents: string, action: (path: string) => Promise<string>): Promise<string> {
+async function withTempFile<Result>(name: string, contents: string, action: (path: string) => Promise<Result>): Promise<Result> {
   const directory = await mkdtemp(join(tmpdir(), 'mace-node-'))
   const path = join(directory, name)
 
@@ -77,6 +102,10 @@ async function withTempFile(name: string, contents: string, action: (path: strin
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
+}
+
+function transformJsonOutput(output: string): MaceRecord {
+  return JSON.parse(output) as MaceRecord
 }
 
 function buildJsonArgs(path: string, options: JsonOptions): string[] {
@@ -120,7 +149,7 @@ async function runMace(args: string[], options: RunOptions): Promise<string> {
   const command = options.macePath ?? await resolveBundledMacePath() ?? 'mace'
 
   return new Promise<string>((resolve, reject) => {
-    const process = spawn(command, args, {
+    const child = spawn(command, args, {
       cwd: options.cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
     })
@@ -128,22 +157,52 @@ async function runMace(args: string[], options: RunOptions): Promise<string> {
     let stdout = ''
     let stderr = ''
 
-    process.stdout.on('data', (chunk) => {
+    child.stdout.on('data', (chunk) => {
       stdout += chunk.toString()
     })
-    process.stderr.on('data', (chunk) => {
+    child.stderr.on('data', (chunk) => {
       stderr += chunk.toString()
     })
-    process.on('error', (error) => {
+    child.on('error', (error) => {
       reject(new MaceError(error.message))
     })
-    process.on('close', (code) => {
+    child.on('close', (code) => {
       if (code === 0) {
         resolve(stdout.trim())
         return
       }
 
-      reject(new MaceError(stderr.trim() || `mace exited with code ${code ?? 1}`, code ?? 1))
+      const message = stderr.trim() || `mace exited with code ${code ?? 1}`
+      reject(new MaceError(message, code ?? 1, diagnosticFromMessage(message, sourcePathFromArgs(args))))
     })
   })
+}
+
+function diagnosticFromMessage(message: string, path?: string): MaceDiagnostic {
+  const firstLine = message.trim().split(/\r?\n/, 1)[0] || 'mace exited with an unknown error'
+  const categoryMatch = /^(?<category>[^:\s]+):\s*(?<message>.*)$/.exec(firstLine)
+  const diagnosticMessage = categoryMatch?.groups?.message || firstLine
+  const positionMatch = /\bat (?<line>\d+):(?<column>\d+)\b/.exec(diagnosticMessage)
+  const codeMatch = /\b(?<code>mace\.[a-z0-9][a-z0-9.-]*)\b/i.exec(diagnosticMessage)
+
+  return {
+    ...(categoryMatch?.groups?.category ? { category: categoryMatch.groups.category } : {}),
+    ...(codeMatch?.groups?.code ? { code: codeMatch.groups.code } : {}),
+    message: diagnosticMessage,
+    ...(positionMatch?.groups
+      ? {
+          range: {
+            start: {
+              line: Number(positionMatch.groups.line),
+              column: Number(positionMatch.groups.column),
+            },
+          },
+        }
+      : {}),
+    ...(path ? { path } : {}),
+  }
+}
+
+function sourcePathFromArgs(args: string[]): string | undefined {
+  return ['json', 'output', 'import'].includes(args[0]) ? args[1] : undefined
 }
