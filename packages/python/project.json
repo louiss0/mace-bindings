@@ -1,0 +1,32 @@
+{
+  "$schema": "../../.nx/installation/node_modules/nx/schemas/project-schema.json",
+  "name": "mace-python",
+  "projectType": "library",
+  "sourceRoot": "packages/python/src",
+  "release": {
+    "version": {
+      "versionActions": "tools/release/python-version-actions.cjs",
+      "currentVersionResolver": "disk"
+    }
+  },
+  "targets": {
+    "build": {
+      "command": "uv build --directory packages/python",
+      "outputs": ["{projectRoot}/dist"],
+      "cache": true
+    },
+    "check": {
+      "command": "uv run --directory packages/python python -m compileall -q src",
+      "cache": true
+    },
+    "test": {
+      "command": "uv run --directory packages/python python -m unittest discover -s tests",
+      "cache": true
+    },
+    "nx-release-publish": {
+      "command": "node tools/release/publish-python.cjs",
+      "dependsOn": ["build"],
+      "cache": false
+    }
+  }
+}
