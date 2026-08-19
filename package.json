@@ -1,0 +1,11 @@
+{
+  "name": "mace-bindings",
+  "private": true,
+  "scripts": {
+    "build": "node .nx/nxw.js run-many -t build",
+    "check": "node .nx/nxw.js run-many -t check",
+    "test": "node --test tools/release/*.test.cjs && node .nx/nxw.js run-many -t test",
+    "release": "node .nx/nxw.js release",
+    "release:dry-run": "node .nx/nxw.js release --dry-run"
+  }
+}
