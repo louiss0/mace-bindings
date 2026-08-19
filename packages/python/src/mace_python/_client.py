@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypeAlias, cast
 
-
 type MaceValue = str | int | float | bool | list[MaceValue] | MaceRecord
 MaceRecord: TypeAlias = dict[str, MaceValue]
 
