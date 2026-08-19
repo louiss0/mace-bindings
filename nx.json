@@ -1,0 +1,38 @@
+{
+  "installation": {
+    "version": "23.1.1",
+    "plugins": {
+      "@nx/js": "23.1.1",
+      "@nx/vite": "23.1.1",
+      "@nx/vitest": "23.1.1"
+    }
+  },
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "defaultBase": "main",
+  "release": {
+    "groups": {
+      "bindings": {
+        "projects": ["mace-node", "mace-python"],
+        "projectsRelationship": "fixed",
+        "releaseTag": {
+          "pattern": "v{version}"
+        }
+      }
+    },
+    "version": {
+      "currentVersionResolver": "disk"
+    },
+    "changelog": {
+      "workspaceChangelog": true,
+      "projectChangelogs": false,
+      "automaticFromRef": true
+    },
+    "git": {
+      "commit": true,
+      "commitMessage": "chore(release): v{version}",
+      "tag": true,
+      "tagMessage": "v{version}",
+      "push": false
+    }
+  }
+}
