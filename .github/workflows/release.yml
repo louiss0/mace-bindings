@@ -1,0 +1,63 @@
+name: Release
+
+# This file documents the release environment and can be run manually after
+# validating the release locally. Publishing is intentionally not automatic.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$(git tag --points-at HEAD | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
+          if [[ -z "$tag" ]]; then
+            echo "The selected commit is not tagged with a vMAJOR.MINOR.PATCH release tag." >&2
+            exit 1
+          fi
+          echo "MACE_BINDINGS_TAG=$tag" >> "$GITHUB_ENV"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Validate workspace
+        run: |
+          npm run check
+          npm run test
+
+      - name: Build packages
+        run: npm run build
+
+      - name: Publish Node package
+        working-directory: packages/node
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm publish --access public --no-git-checks
+
+      - name: Publish Python package
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.UV_PUBLISH_TOKEN }}
+        run: uv publish --directory packages/python
