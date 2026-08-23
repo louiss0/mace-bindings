@@ -1,6 +1,6 @@
 [project]
 name = "mace-python"
-version = "1.0.0"
+version = "2.0.0"
 description = "Official Python bindings for Mace"
 readme = "README.md"
 authors = [
