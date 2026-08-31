@@ -10,8 +10,9 @@ published packages select the matching binary for the current platform.
 
 - `packages/node` — `@code-fixer-23/mace-node`
 - `packages/python` — `mace-python`
+- `packages/dart` — `mace_dart`
 
-Both packages are released at version 1.0.0 for the Mace 1.0.0 release. Each
+All packages are released at version 1.0.0 for the Mace 1.0.0 release. Each
 package includes the supported platform binaries and accepts a custom
 executable path when a project needs a different Mace build.
 
@@ -27,8 +28,9 @@ and PyPI packages the same version and creates a `v{version}` Git tag. The Nx
 wrapper (`nx`/`nx.bat`) is committed with the workspace and installs the pinned
 Nx plugins on first use.
 
-Install `pnpm` for the Node binding and [uv](https://docs.astral.sh/uv/) for
-the Python binding, then run:
+Install `pnpm` for the Node binding, [uv](https://docs.astral.sh/uv/) for the
+Python binding, and the [Dart SDK](https://dart.dev/get-dart) for the Dart
+binding, then run:
 
 ```bash
 npm run check
