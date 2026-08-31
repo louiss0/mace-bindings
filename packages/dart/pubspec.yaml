@@ -1,6 +1,6 @@
 name: mace_dart
 description: Official Dart bindings for Mace.
-version: 2.0.0
+version: 1.0.0
 repository: https://github.com/louiss0/mace-bindings
 
 environment:
