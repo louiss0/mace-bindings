@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+
+Flatten the client implementation into the library entrypoint. No API changes.
+
 ## 1.0.0
 
 Initial release of the Dart bindings, matching the other Mace bindings. For the
