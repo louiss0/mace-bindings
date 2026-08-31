@@ -1,0 +1,32 @@
+{
+  "$schema": "../../.nx/installation/node_modules/nx/schemas/project-schema.json",
+  "name": "mace-dart",
+  "projectType": "library",
+  "sourceRoot": "packages/dart/lib",
+  "release": {
+    "version": {
+      "versionActions": "tools/release/dart-version-actions.cjs",
+      "currentVersionResolver": "disk"
+    }
+  },
+  "targets": {
+    "build": {
+      "command": "dart pub get -C packages/dart",
+      "outputs": ["{projectRoot}/.dart_tool"],
+      "cache": true
+    },
+    "check": {
+      "command": "dart analyze --fatal-infos --fatal-warnings packages/dart",
+      "cache": true
+    },
+    "test": {
+      "command": "cd packages/dart && dart test",
+      "cache": true
+    },
+    "nx-release-publish": {
+      "command": "node tools/release/publish-dart.cjs",
+      "dependsOn": ["build"],
+      "cache": false
+    }
+  }
+}

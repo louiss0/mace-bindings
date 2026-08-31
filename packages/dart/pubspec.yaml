@@ -1,0 +1,14 @@
+name: mace_dart
+description: Official Dart bindings for Mace.
+version: 2.0.0
+repository: https://github.com/louiss0/mace-bindings
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  path: ^1.9.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6
