@@ -12,7 +12,7 @@
   "release": {
     "groups": {
       "bindings": {
-        "projects": ["mace-node", "mace-python"],
+        "projects": ["mace-node", "mace-python", "mace-dart"],
         "projectsRelationship": "fixed",
         "releaseTag": {
           "pattern": "v{version}"
