@@ -44,8 +44,13 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
 
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+
       - name: Install dependencies
-        run: pnpm install --dir packages/node --frozen-lockfile
+        run: |
+          pnpm install --dir packages/node --frozen-lockfile
+          dart pub get -C packages/dart
 
       - name: Validate workspace
         run: |
@@ -71,3 +76,12 @@ jobs:
 
       - name: Publish Python package
         run: uv publish --directory packages/python
+
+      - name: Publish Dart package
+        shell: bash
+        # Configure pub credentials in the environment before running this
+        # step, e.g. via 1Password secrets as with the other bindings.
+        run: |
+          mkdir -p ~/.dart
+          echo "$PUB_CREDENTIALS" > ~/.dart/pub-credentials.json
+          dart pub publish --force --directory packages/dart

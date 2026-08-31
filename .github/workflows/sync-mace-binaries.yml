@@ -53,8 +53,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          rm -rf bin packages/node/bin packages/python/src/mace_python/bin
-          mkdir -p bin packages/node/bin packages/python/src/mace_python/bin
+          rm -rf bin packages/node/bin packages/python/src/mace_python/bin packages/dart/bin
+          mkdir -p bin packages/node/bin packages/python/src/mace_python/bin packages/dart/bin
 
           targets=(
             "darwin amd64 mace"
@@ -92,7 +92,7 @@ jobs:
               exit 1
             fi
 
-            for destination_root in bin packages/node/bin packages/python/src/mace_python/bin; do
+            for destination_root in bin packages/node/bin packages/python/src/mace_python/bin packages/dart/bin; do
               destination="$destination_root/$platform"
               mkdir -p "$destination"
               cp "$source_path" "$destination/$executable"
@@ -113,7 +113,7 @@ jobs:
           git diff --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add bin packages/node/bin packages/python/src/mace_python/bin
+          git add bin packages/node/bin packages/python/src/mace_python/bin packages/dart/bin
 
           if git diff --cached --quiet; then
             echo "Mace v${VERSION} is already synchronized."
