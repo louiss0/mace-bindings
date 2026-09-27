@@ -25,6 +25,7 @@ artifacts must instead come from a verified processor release:
 `node tools/native/stage-release.mjs <version> [target ...]` downloads the
 published `processor-manifest.json`, verifies each library against its pinned
 SHA-256, and stages it into every binding. The local staging script is not a
-release path.
+release path. Set `MACE_REPOSITORY` to build the processor from a checkout
+that is not a sibling of this repository.
 
 The bindings are MIT licensed; see [LICENSE](LICENSE).

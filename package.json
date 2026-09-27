@@ -5,6 +5,8 @@
     "build": "node .nx/nxw.js run-many -t build",
     "check": "node .nx/nxw.js run-many -t check",
     "test": "node --test tools/release/*.test.cjs && node .nx/nxw.js run-many -t test",
+    "check:node-python": "node .nx/nxw.js run-many -t check -p mace-node mace-python",
+    "test:node-python": "node --test tools/release/*.test.cjs && node .nx/nxw.js run-many -t test -p mace-node mace-python",
     "release": "node .nx/nxw.js release",
     "release:dry-run": "node .nx/nxw.js release --dry-run"
   }

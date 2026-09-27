@@ -1,7 +1,11 @@
 # Build a host-only processor library for local integration tests.
 def main [] {
 	let bindings = ($env.FILE_PWD | path dirname | path dirname)
-	let mace = ($bindings | path dirname | path join mace)
+	# CI checks the processor out beside this script's arguments rather than as a sibling.
+	let mace = match (($env | columns) | any {|name| $name == 'MACE_REPOSITORY'}) {
+		true => ($env | get MACE_REPOSITORY)
+		false => ($bindings | path dirname | path join mace)
+	}
 	let host = $nu.os-info
 	let system = match $host.name {
 		windows => 'windows'
