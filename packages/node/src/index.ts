@@ -3,6 +3,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import koffi from 'koffi'
 
+import { createExecutionGate } from './execution.ts'
+
 export type RunOptions = { cwd?: string; timeoutMs?: number; signal?: AbortSignal }
 export type JsonOptions = RunOptions & { input?: string }
 export type MaceValue = string | number | boolean | null | MaceValue[] | { [field: string]: MaceValue }
@@ -87,6 +89,10 @@ async function loadLibrary() {
 type Native = Awaited<ReturnType<typeof loadLibrary>>
 let loaded: Promise<Native> | undefined
 
+/** Matches the libuv thread pool that serves the asynchronous native calls. */
+const nativeConcurrency = 4
+const gate = createExecutionGate(nativeConcurrency)
+
 function readString(native: Native, pointer: bigint | null, length?: number): string | undefined {
   if (!pointer) return undefined
   try {
@@ -158,7 +164,7 @@ async function evaluate(operation: 'file' | 'source', source: string, options: J
     throw new MaceError('timeoutMs must be a positive 32-bit integer')
   }
   const request = native.newRequest(options.timeoutMs ?? 0)
-  return new Promise<MaceRecord>((resolve, reject) => {
+  return gate.run(() => new Promise<MaceRecord>((resolve, reject) => {
     const cancel = () => native.cancelRequest(request)
     options.signal?.addEventListener('abort', cancel, { once: true })
     if (options.signal?.aborted) cancel()
@@ -173,7 +179,7 @@ async function evaluate(operation: 'file' | 'source', source: string, options: J
         native.freeRequest(request)
       }
     })
-  })
+  }))
 }
 
 export async function json(path: string, options: JsonOptions = {}): Promise<MaceRecord> {

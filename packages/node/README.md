@@ -3,7 +3,8 @@
 Node.js 22+ bindings for the Mace processor C ABI. This package loads a
 platform-specific Go shared library through Koffi; it never launches `mace`.
 Calls are asynchronous and Koffi executes processor calls on native worker
-threads. A library ABI-major mismatch fails before evaluation.
+threads. At most four evaluations run at once; further calls queue in
+submission order. A library ABI-major mismatch fails before evaluation.
 
 ```ts
 import { json, transform } from '@code-fixer-23/mace-node'
