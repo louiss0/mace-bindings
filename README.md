@@ -21,7 +21,10 @@ publication to Nx rather than publishing packages itself. Every Nx command
 must run with `NX_DAEMON=false`. For local development with a C compiler, run
 `nu tools/native/stage-local.nu` from this repo to build and stage the host
 library from `../mace`. Then run `npm run check` and `npm run test`. Published
-artifacts must instead come from verified processor releases; the local staging
-script is not a release path.
+artifacts must instead come from a verified processor release:
+`node tools/native/stage-release.mjs <version> [target ...]` downloads the
+published `processor-manifest.json`, verifies each library against its pinned
+SHA-256, and stages it into every binding. The local staging script is not a
+release path.
 
 The bindings are MIT licensed; see [LICENSE](LICENSE).
