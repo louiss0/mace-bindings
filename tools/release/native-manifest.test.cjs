@@ -14,11 +14,11 @@ async function loadModule() {
 const releaseManifest = {
   version: '1.2.3',
   targets: [
-    { target: 'darwin-amd64', artifact: 'mace-processor/darwin-amd64/libmace_processor.dylib', sha256: 'a'.repeat(64) },
-    { target: 'darwin-arm64', artifact: 'mace-processor/darwin-arm64/libmace_processor.dylib', sha256: 'b'.repeat(64) },
-    { target: 'linux-amd64-glibc', artifact: 'mace-processor/linux-amd64-glibc/libmace_processor.so', sha256: 'c'.repeat(64) },
-    { target: 'linux-arm64-glibc', artifact: 'mace-processor/linux-arm64-glibc/libmace_processor.so', sha256: 'e'.repeat(64) },
-    { target: 'windows-amd64', artifact: 'mace-processor/windows-amd64/mace_processor.dll', sha256: '1'.repeat(64) },
+    { target: 'darwin-amd64', artifact: 'mace-processor/mace-processor-darwin-amd64.dylib', sha256: 'a'.repeat(64) },
+    { target: 'darwin-arm64', artifact: 'mace-processor/mace-processor-darwin-arm64.dylib', sha256: 'b'.repeat(64) },
+    { target: 'linux-amd64-glibc', artifact: 'mace-processor/mace-processor-linux-amd64-glibc.so', sha256: 'c'.repeat(64) },
+    { target: 'linux-arm64-glibc', artifact: 'mace-processor/mace-processor-linux-arm64-glibc.so', sha256: 'e'.repeat(64) },
+    { target: 'windows-amd64', artifact: 'mace-processor/mace-processor-windows-amd64.dll', sha256: '1'.repeat(64) },
   ],
 }
 

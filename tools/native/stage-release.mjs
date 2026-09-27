@@ -39,15 +39,14 @@ for (const target of targets) {
   if (!entry) throw new Error(`Processor release ${version} does not publish ${target}`)
 
   const artifact = verifyArtifact(target, entry, await download(releaseUrl(version, entry.artifact)))
-  const filename = filenameForTarget(target)
-  if (filename !== entry.artifact.split('/').pop()) {
-    throw new Error(`Processor release ${version} publishes ${entry.artifact} for ${target}`)
+  if (!entry.artifact.includes(target)) {
+    throw new Error(`Processor release ${version} maps ${target} to ${entry.artifact}`)
   }
 
   for (const directory of stagingDirectories) {
     const destination = join(directory, target)
     await mkdir(destination, { recursive: true })
-    await writeFile(join(destination, filename), artifact)
+    await writeFile(join(destination, filenameForTarget(target)), artifact)
   }
   console.log(`Staged ${target} from processor v${version}`)
 }
