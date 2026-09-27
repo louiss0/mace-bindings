@@ -1,10 +1,10 @@
 # Mace bindings
 
 Official Node, Python, and Dart bindings for the Mace processor. The bindings
-are migrating from subprocess calls to the processor's separately built C ABI;
-the Mace CLI will remain a distinct release. **Do not publish these packages
-yet:** verified native artifact staging, eight-variant tests, full cancellation
-coverage, and release workflows are still being migrated.
+are built on the processor's separately built C ABI; the Mace CLI
+remains a distinct release. **Do not publish these packages yet:** the release
+gates exist, but the processor release they depend on has never been published
+end to end and the platform matrix has never run against a real release.
 
 - `packages/node` — `@code-fixer-23/mace-node` (Koffi)
 - `packages/python` — `mace-python` (`ctypes`)

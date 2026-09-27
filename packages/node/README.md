@@ -33,5 +33,7 @@ positive deadline and `signal` accepts an `AbortSignal`. Cancellation and
 timeouts reject with `MaceError` and distinct diagnostic codes.
 
 Native binaries must be staged from separately released processor artifacts
-before publishing. Verified artifact staging and the native CI matrix remain
-incomplete; this migration is not release-ready.
+before publishing. Staging verifies every library against the published
+manifest checksums, and CI runs this package against all eight variants, but
+neither has run against a real processor release yet, so publication is
+blocked.

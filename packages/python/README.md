@@ -34,5 +34,6 @@ Native libraries must be staged before building. Wheels are platform-tagged
 and contain only their target library. The sdist requires all eight supported
 libraries and carries them with the build backend configuration, so it can
 build a platform wheel offline with Hatchling already installed. The hook
-rejects missing targets and untested wheel tags. Release artifact verification
-and cross-platform tests remain incomplete, so publication is blocked.
+rejects missing targets and untested wheel tags. CI tests this package against
+all eight variants once a processor release is pinned, so publication is
+blocked until then.
