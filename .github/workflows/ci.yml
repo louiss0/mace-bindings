@@ -59,10 +59,19 @@ jobs:
           pnpm install --dir packages/node --frozen-lockfile
           dart pub get -C packages/dart
 
+      # CI stages with plain go build rather than tools/native/stage-local.nu, which
+      # needs Nushell and a local sibling checkout. The runner is a known target.
       - name: Stage a native library for the host
-        env:
-          MACE_REPOSITORY: ${{ github.workspace }}/mace
-        run: nu tools/native/stage-local.nu
+        run: |
+          set -euo pipefail
+          target=linux-amd64-glibc
+          library=libmace_processor.so
+          go -C mace build -buildmode=c-shared -o "$RUNNER_TEMP/$library" ./cmd/processor-abi
+          MACE_PROCESSOR_LIBRARY="$RUNNER_TEMP/$library" python3 mace/cmd/processor-abi/abi_test.py
+          for package in packages/node packages/python/src/mace_python packages/dart; do
+            mkdir -p "$package/bin/$target"
+            cp "$RUNNER_TEMP/$library" "$package/bin/$target/$library"
+          done
 
       - name: Check and test
         run: |
