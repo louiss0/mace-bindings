@@ -14,12 +14,14 @@ All three return evaluated records through processor calls. They no longer
 implement CLI-only conversion/import functions. Consult each package README
 for source/file evaluation, compatibility aliases, and diagnostics.
 
-Nx manages versioning and publishing. The old CLI binary-sync workflow has
-been removed; the existing fixed release group is **not yet suitable** for
-independent processor and binding releases. Every Nx command must run with `NX_DAEMON=false`.
-For local development with a C compiler, run `nu tools/native/stage-local.nu`
-from this repo to build and stage the host library from `../mace`. Then run
-`npm run check` and `npm run test`. Published artifacts must instead come from
-verified processor releases; the local staging script is not a release path.
+Nx owns versioning, tagging, and publishing. The old CLI binary-sync workflow
+has been removed, and each binding now has its own independent release group
+with a `node-v`, `python-v`, or `dart-v` tag. The release workflow delegates
+publication to Nx rather than publishing packages itself. Every Nx command
+must run with `NX_DAEMON=false`. For local development with a C compiler, run
+`nu tools/native/stage-local.nu` from this repo to build and stage the host
+library from `../mace`. Then run `npm run check` and `npm run test`. Published
+artifacts must instead come from verified processor releases; the local staging
+script is not a release path.
 
 The bindings are MIT licensed; see [LICENSE](LICENSE).

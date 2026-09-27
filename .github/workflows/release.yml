@@ -1,7 +1,7 @@
 name: Release
 
-# This file documents the release environment and can be run manually after
-# validating the release locally. Publishing is intentionally not automatic.
+# Publication stays blocked until native artifacts pass the eight-variant gate.
+# Nx owns package versioning, tagging, and publishing.
 on:
   workflow_dispatch:
 
@@ -14,24 +14,13 @@ jobs:
     steps:
       - name: Prevent incomplete native release
         run: |
-          echo "Processor artifact pinning, cross-platform tests, and Nx independent release groups are not configured yet." >&2
+          echo "Verified processor artifacts, installed-package platform tests, and the Dart tag-push OIDC job are not configured yet." >&2
           exit 1
 
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-
-      - name: Resolve release tag
-        shell: bash
-        run: |
-          set -euo pipefail
-          tag="$(git tag --points-at HEAD | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
-          if [[ -z "$tag" ]]; then
-            echo "The selected commit is not tagged with a vMAJOR.MINOR.PATCH release tag." >&2
-            exit 1
-          fi
-          echo "MACE_BINDINGS_TAG=$tag" >> "$GITHUB_ENV"
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -75,18 +64,14 @@ jobs:
           NODE_AUTH_TOKEN: "op://Development/Code Fixer 23 NPM Token/credential"
           UV_PUBLISH_TOKEN: "op://Development/PY_TOKEN/credential"
 
-      - name: Publish Node package
-        working-directory: packages/node
-        run: pnpm publish --access public --no-git-checks
-
-      - name: Publish Python package
-        run: uv publish --directory packages/python
-
-      - name: Publish Dart package
-        shell: bash
-        # Configure pub credentials in the environment before running this
-        # step, e.g. via 1Password secrets as with the other bindings.
+      - name: Write Dart publish credentials
+        env:
+          PUB_CREDENTIALS: ${{ secrets.PUB_CREDENTIALS }}
         run: |
           mkdir -p ~/.dart
           echo "$PUB_CREDENTIALS" > ~/.dart/pub-credentials.json
-          dart pub publish --force --directory packages/dart
+
+      - name: Publish bindings through Nx Release
+        env:
+          NX_DAEMON: 'false'
+        run: node .nx/nxw.js release publish --groups=node,python,dart --nxBail

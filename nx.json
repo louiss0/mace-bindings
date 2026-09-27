@@ -11,28 +11,41 @@
   "defaultBase": "main",
   "release": {
     "groups": {
-      "bindings": {
-        "projects": ["mace-node", "mace-python", "mace-dart"],
-        "projectsRelationship": "fixed",
+      "node": {
+        "projects": ["mace-node"],
+        "projectsRelationship": "independent",
         "releaseTag": {
-          "pattern": "v{version}"
+          "pattern": "node-v{version}"
+        }
+      },
+      "python": {
+        "projects": ["mace-python"],
+        "projectsRelationship": "independent",
+        "releaseTag": {
+          "pattern": "python-v{version}"
+        }
+      },
+      "dart": {
+        "projects": ["mace-dart"],
+        "projectsRelationship": "independent",
+        "releaseTag": {
+          "pattern": "dart-v{version}"
         }
       }
     },
     "version": {
-      "currentVersionResolver": "disk"
+      "currentVersionResolver": "disk",
+      "git": {
+        "commit": true,
+        "commitMessage": "chore(release): update bindings",
+        "tag": true,
+        "push": false
+      }
     },
     "changelog": {
       "workspaceChangelog": true,
       "projectChangelogs": false,
       "automaticFromRef": true
-    },
-    "git": {
-      "commit": true,
-      "commitMessage": "chore(release): v{version}",
-      "tag": true,
-      "tagMessage": "v{version}",
-      "push": false
     }
   }
 }
