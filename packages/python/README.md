@@ -30,6 +30,9 @@ support explicit cancellation through `CancellationToken.cancel()` (including
 from another Python thread). All failures remain `MaceError` with distinct
 diagnostic codes for timeout and cancellation.
 
-Native libraries must be staged before testing or building wheels. Wheels are
-platform-tagged; an offline-buildable sdist and release artifact verification
-remain incomplete, so publication is currently blocked.
+Native libraries must be staged before building. Wheels are platform-tagged
+and contain only their target library. The sdist requires all eight supported
+libraries and carries them with the build backend configuration, so it can
+build a platform wheel offline with Hatchling already installed. The hook
+rejects missing targets and untested wheel tags. Release artifact verification
+and cross-platform tests remain incomplete, so publication is blocked.
