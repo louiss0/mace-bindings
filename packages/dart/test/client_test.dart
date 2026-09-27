@@ -1,4 +1,4 @@
-import 'dart:io' show Directory, File;
+import 'dart:io' show Directory, File, HttpServer, InternetAddress;
 
 import 'package:mace_dart/mace_dart.dart';
 import 'package:path/path.dart' as path;
@@ -66,6 +66,28 @@ void main() {
             (error) => error.diagnostic.code,
             'code',
             'mace.runtime.cancelled',
+          ),
+        ),
+      );
+    });
+
+    test('reports a timeout with its own diagnostic code', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) {}, onError: (_) {});
+      addTearDown(() async {
+        await server.close(force: true);
+      });
+      expect(
+        transform(
+          "|===|\nfrom 'http://${server.address.address}:${server.port}/types.mace' import Age;\n|===|\n[output = 'data']\n{ age: 42, }",
+          cwd: workspace.path,
+          timeoutMs: 100,
+        ),
+        throwsA(
+          isA<MaceError>().having(
+            (error) => error.diagnostic.code,
+            'code',
+            'mace.runtime.timeout',
           ),
         ),
       );

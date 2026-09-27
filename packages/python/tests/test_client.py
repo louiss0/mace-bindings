@@ -1,4 +1,7 @@
+import http.server
 import tempfile
+import threading
+import time
 import unittest
 from pathlib import Path
 
@@ -49,6 +52,27 @@ class ClientTest(unittest.TestCase):
             with self.assertRaises(MaceError) as raised:
                 transform("[output = 'data']\n{ enabled: true, }", cwd=workspace, cancellation=cancellation)
         self.assertEqual("mace.runtime.cancelled", raised.exception.diagnostic.code)
+
+    def test_timed_out_evaluation_reports_a_diagnostic(self) -> None:
+        class Stalled(http.server.BaseHTTPRequestHandler):
+            def do_GET(self) -> None:
+                time.sleep(5)
+
+            def log_message(self, *args: object) -> None:
+                return
+
+        server = http.server.HTTPServer(("127.0.0.1", 0), Stalled)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            source = f"|===|\nfrom 'http://127.0.0.1:{server.server_port}/types.mace' import Age;\n|===|\n[output = 'data']\n{{ age: 42, }}"
+            with tempfile.TemporaryDirectory() as workspace:
+                with self.assertRaises(MaceError) as raised:
+                    transform(source, cwd=workspace, timeout_ms=100)
+            self.assertEqual("mace.runtime.timeout", raised.exception.diagnostic.code)
+        finally:
+            server.shutdown()
+            server.server_close()
 
     def test_deprecated_output_alias_still_evaluates_file(self) -> None:
         with tempfile.TemporaryDirectory() as workspace:

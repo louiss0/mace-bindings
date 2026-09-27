@@ -70,6 +70,24 @@ test('cancels a stalled remote import without blocking Node', async () => {
   }
 })
 
+test('reports a timeout with its own diagnostic code', async () => {
+  const cwd = await createWorkspace()
+  const server = createServer(() => {})
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const address = server.address()
+  if (!address || typeof address === 'string') throw new Error('Unable to bind test server')
+  try {
+    await expect(transform(`|===|\nfrom 'http://127.0.0.1:${address.port}/types.mace' import Age;\n|===|\n[output = 'data']\n{ age: 42, }`, {
+      cwd, timeoutMs: 100,
+    })).rejects.toMatchObject({
+      name: 'MaceError', diagnostic: { code: 'mace.runtime.timeout' },
+    })
+  } finally {
+    server.closeAllConnections()
+    server.close()
+  }
+})
+
 test('rejects unsafe JavaScript integers rather than losing precision', async () => {
   const cwd = await createWorkspace()
   await expect(transform("[output = 'data']\n{ value: 9007199254740993, }", { cwd }))
