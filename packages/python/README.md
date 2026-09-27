@@ -15,9 +15,24 @@ value_with_input = json('./runtime.mace', input='{ env: "prod", }')
 `cwd`. `transform(source, input=None, cwd=None, source_name=None, timeout_ms=None, cancellation=None)` evaluates
 in-memory source and resolves imports from that workspace; the optional
 `source_name` labels diagnostics only. `input` is a Mace record literal.
-Remote HTTP(S) imports remain available. `json_text` and `output` are
-deprecated aliases for `json`; the CLI-backed `import_*` functions and
-`mace_path` option have been removed.
+`json_text` and `output` are deprecated aliases for `json`; the CLI-backed
+`import_*` functions and `mace_path` option have been removed.
+
+## Security: remote imports are not sandboxed
+
+`cwd` bounds the entry file and every *local* import, but HTTP(S) imports are
+deliberately unrestricted. A `.mace` file you did not write can contain:
+
+```mace
+from 'http://169.254.169.254/latest/meta-data/iam/' import Role;
+```
+
+Evaluating it makes this process issue that request, including to cloud
+metadata endpoints or hosts behind your firewall. There is no allowlist, no
+per-origin opt-in, and no egress control. If you evaluate configuration from an
+untrusted source, do not use this package on a host with sensitive network
+reachability, or pre-validate the file for `http://` and `https://` imports
+yourself.
 
 The result is a Python dictionary containing ordinary strings, exact integers,
 floats, booleans, nested dictionaries, lists, and null values. Hex values

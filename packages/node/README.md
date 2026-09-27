@@ -17,10 +17,25 @@ const injected = await json('./runtime.mace', { input: '{ env: "prod", }' })
 `json(path, { input?, cwd?, timeoutMs?, signal? })` evaluates a file inside `cwd` (the workspace
 root). `transform(source, { input?, cwd?, sourceName?, timeoutMs?, signal? })` evaluates in-memory
 source with imports relative to `cwd`. `input` is a Mace record literal, not a
-JavaScript object. `cwd` defaults to the process working directory. Remote
-HTTP(S) imports remain available. `jsonText` and `output` still evaluate files
-but are deprecated aliases for `json`; the CLI-only `import*` functions and
-`macePath` option have been removed.
+JavaScript object. `cwd` defaults to the process working directory. `jsonText`
+and `output` still evaluate files but are deprecated aliases for `json`; the
+CLI-only `import*` functions and `macePath` option have been removed.
+
+## Security: remote imports are not sandboxed
+
+`cwd` bounds the entry file and every *local* import, but HTTP(S) imports are
+deliberately unrestricted. A `.mace` file that you did not write can contain:
+
+```mace
+from 'http://169.254.169.254/latest/meta-data/iam/' import Role;
+```
+
+Evaluating it makes this process issue that request, including to cloud
+metadata endpoints or hosts behind your firewall. There is no allowlist, no
+per-origin opt-in, and no egress control. If you evaluate configuration from an
+untrusted source, do not use these bindings on a host with sensitive network
+reachability, or pre-validate the file for `http://` and `https://` imports
+yourself.
 
 Results contain ordinary nested JavaScript records, arrays, strings, numbers,
 booleans, and null. Hex numbers remain formatted strings. An integer larger

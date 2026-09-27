@@ -19,6 +19,22 @@ functions and `macePath` are removed. Results contain nested Dart maps and
 lists. Errors retain `MaceError` with structured diagnostics; `exitCode` is
 compatibility-only.
 
+## Security: remote imports are not sandboxed
+
+`cwd` bounds the entry file and every *local* import, but HTTP(S) imports are
+deliberately unrestricted. A `.mace` file you did not write can contain:
+
+```mace
+from 'http://169.254.169.254/latest/meta-data/iam/' import Role;
+```
+
+Evaluating it makes this process issue that request, including to cloud
+metadata endpoints or hosts behind your firewall. There is no allowlist, no
+per-origin opt-in, and no egress control. If you evaluate configuration from an
+untrusted source, do not use this package on a host with sensitive network
+reachability, or pre-validate the file for `http://` and `https://` imports
+yourself.
+
 A call defaults to a 30-second deadline; `timeoutMs` overrides it with a
 positive value. Pass a `MaceCancellationController` to cancel an in-flight
 call while the evaluation isolate is blocked in native code.
