@@ -21,7 +21,7 @@
     },
     "test": {
       "command": "pnpm --dir packages/node run test",
-      "cache": true
+      "cache": false
     },
     "nx-release-publish": {
       "executor": "@nx/js:release-publish",

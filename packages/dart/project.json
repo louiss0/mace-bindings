@@ -21,7 +21,7 @@
     },
     "test": {
       "command": "cd packages/dart && dart test",
-      "cache": true
+      "cache": false
     },
     "nx-release-publish": {
       "command": "node tools/release/publish-dart.cjs",

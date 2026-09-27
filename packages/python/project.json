@@ -13,7 +13,7 @@
     "build": {
       "command": "uv build --directory packages/python",
       "outputs": ["{projectRoot}/dist"],
-      "cache": true
+      "cache": false
     },
     "check": {
       "command": "uv run --directory packages/python python -m compileall -q src",
@@ -21,7 +21,7 @@
     },
     "test": {
       "command": "uv run --directory packages/python python -m unittest discover -s tests",
-      "cache": true
+      "cache": false
     },
     "nx-release-publish": {
       "command": "node tools/release/publish-python.cjs",
