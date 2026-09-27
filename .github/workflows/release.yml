@@ -12,6 +12,11 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - name: Prevent incomplete native release
+        run: |
+          echo "Processor artifact pinning, cross-platform tests, and Nx independent release groups are not configured yet." >&2
+          exit 1
+
       - name: Checkout
         uses: actions/checkout@v5
         with:

@@ -4,6 +4,11 @@
 **/__pycache__/
 *.egg-info/
 
+# Native libraries are staged from pinned processor release artifacts.
+packages/node/bin/
+packages/python/src/mace_python/bin/
+packages/dart/bin/
+
 .nx/installation
 .nx/cache
 .nx/workspace-data

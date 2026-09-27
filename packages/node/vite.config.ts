@@ -10,7 +10,7 @@ export default defineConfig({
       formats: ['es'],
     },
     rollupOptions: {
-      external: ['node:child_process', 'node:fs/promises', 'node:os', 'node:path'],
+      external: ['koffi', 'node:fs/promises', 'node:path', 'node:url'],
     },
   },
 })
