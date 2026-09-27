@@ -3,8 +3,16 @@
 Official Node, Python, and Dart bindings for the Mace processor. The bindings
 are built on the processor's separately built C ABI; the Mace CLI
 remains a distinct release. **Do not publish these packages yet:** the release
-gates exist, but the processor release they depend on has never been published
-end to end and the platform matrix has never run against a real release.
+gates exist, but the platform matrix has not yet run against a real published
+processor release.
+
+Libraries are published for `darwin-amd64`, `darwin-arm64`, `windows-amd64`,
+`linux-amd64-glibc`, and `linux-arm64-glibc`. `linux-amd64-musl`,
+`linux-arm64-musl`, and `windows-arm64` are **not** supported: the musl build
+segfaults when called from C, and the Windows arm64 runner has no cross
+toolchain. Every binding raises a clear "not published for this platform"
+error there instead of trying to load a library. The reasons live in the
+processor's `processor-targets.json`.
 
 - `packages/node` — `@code-fixer-23/mace-node` (Koffi)
 - `packages/python` — `mace-python` (`ctypes`)

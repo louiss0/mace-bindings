@@ -7,9 +7,8 @@ const { join } = require('node:path')
 
 const targets = [
   'darwin-amd64', 'darwin-arm64',
-  'windows-amd64', 'windows-arm64',
+  'windows-amd64',
   'linux-amd64-glibc', 'linux-arm64-glibc',
-  'linux-amd64-musl', 'linux-arm64-musl',
 ]
 
 const nativeName = (target) => target.startsWith('windows') ? 'mace_processor.dll'
@@ -60,7 +59,7 @@ test('sdist contains all supported native variants and builds a single-platform 
       stdio: 'pipe',
     }))
 
-    rmSync(join(source, 'bin', 'windows-arm64', nativeName('windows-arm64')))
+    rmSync(join(source, 'bin', 'linux-arm64-glibc', nativeName('linux-arm64-glibc')))
     assert.throws(() => execFileSync('uv', ['build', '--sdist', '--directory', fixture], { stdio: 'pipe' }))
   } finally {
     rmSync(fixture, { recursive: true, force: true })

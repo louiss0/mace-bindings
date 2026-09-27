@@ -6,16 +6,18 @@ const libraryFilenames = {
   windows: 'mace_processor.dll',
 }
 
-/** Every platform variant the processor release publishes. */
+/**
+ * Every platform variant the processor release publishes. musl and Windows
+ * arm64 are deliberately absent: see `unsupported` in the processor's
+ * processor-targets.json. Do not add a target here before the processor
+ * release publishes it.
+ */
 export const supportedTargets = [
   'darwin-amd64',
   'darwin-arm64',
   'linux-amd64-glibc',
-  'linux-amd64-musl',
   'linux-arm64-glibc',
-  'linux-arm64-musl',
   'windows-amd64',
-  'windows-arm64',
 ]
 
 export function filenameForTarget(target) {

@@ -68,6 +68,16 @@ class CancellationToken:
         return stop_listening
 
 
+# Only the targets the processor release publishes; see tools/native/manifest.mjs.
+PUBLISHED_TARGETS = {
+    "darwin-amd64",
+    "darwin-arm64",
+    "linux-amd64-glibc",
+    "linux-arm64-glibc",
+    "windows-amd64",
+}
+
+
 def _platform_target() -> tuple[str, str]:
     system = "windows" if sys.platform == "win32" else sys.platform
     architecture = {
@@ -82,7 +92,13 @@ def _platform_target() -> tuple[str, str]:
     libc = "-glibc" if system == "linux" and platform.libc_ver()[0] == "glibc" else ""
     if system == "linux" and not libc:
         libc = "-musl"
-    return f"{system}-{architecture}{libc}", {"windows": "mace_processor.dll", "darwin": "libmace_processor.dylib", "linux": "libmace_processor.so"}[system]
+    target = f"{system}-{architecture}{libc}"
+    if target not in PUBLISHED_TARGETS:
+        raise MaceError(
+            f"The processor does not publish a library for {target} yet. musl and Windows arm64 are not released.",
+            MaceDiagnostic("Unsupported platform"),
+        )
+    return target, {"windows": "mace_processor.dll", "darwin": "libmace_processor.dylib", "linux": "libmace_processor.so"}[system]
 
 
 @cache

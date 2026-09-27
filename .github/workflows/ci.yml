@@ -87,63 +87,29 @@ jobs:
       matrix:
         include:
           - target: darwin-amd64
-            os: macos-13
-            container: ''
-            dart: true
+            os: macos-15-intel
           - target: darwin-arm64
             os: macos-14
-            container: ''
-            dart: true
           - target: windows-amd64
             os: windows-2022
-            container: ''
-            dart: true
-          - target: windows-arm64
-            os: windows-11-arm
-            container: ''
-            dart: true
           - target: linux-amd64-glibc
             os: ubuntu-24.04
-            container: ''
-            dart: true
           - target: linux-arm64-glibc
             os: ubuntu-24.04-arm
-            container: ''
-            dart: true
-          # The Dart SDK ships no musl build, so musl variants cover Node and Python.
-          - target: linux-amd64-musl
-            os: ubuntu-24.04
-            container: alpine:3.20
-            dart: false
-          - target: linux-arm64-musl
-            os: ubuntu-24.04-arm
-            container: alpine:3.20
-            dart: false
     runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container }}
     env:
       NX_DAEMON: 'false'
     steps:
-      - name: Install Alpine tooling
-        if: ${{ matrix.container != '' }}
-        run: apk add --no-cache bash git nodejs npm
-
       - name: Checkout
         uses: actions/checkout@v5
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
-        if: ${{ matrix.container == '' }}
         with:
           version: 10
 
-      - name: Enable pnpm
-        if: ${{ matrix.container != '' }}
-        run: corepack enable
-
       - name: Set up Node
         uses: actions/setup-node@v5
-        if: ${{ matrix.container == '' }}
         with:
           node-version: 24
           cache: pnpm
@@ -154,33 +120,19 @@ jobs:
 
       - name: Set up Dart
         uses: dart-lang/setup-dart@v1
-        if: ${{ matrix.dart }}
 
       - name: Install dependencies
-        shell: bash
         run: |
           pnpm install --dir packages/node --frozen-lockfile
-          if [[ "${{ matrix.dart }}" == "true" ]]; then
-            dart pub get -C packages/dart
-          fi
+          dart pub get -C packages/dart
 
       - name: Stage the published processor artifact
-        shell: bash
         run: node tools/native/stage-release.mjs "${{ inputs.processor_version }}" "${{ matrix.target }}"
 
       - name: Test the installed packages
-        shell: bash
         run: |
-          if [[ "${{ matrix.dart }}" == "true" ]]; then
-            npm run check
-          else
-            npm run check:node-python
-          fi
-          if [[ "${{ matrix.dart }}" == "true" ]]; then
-            npm run test
-          else
-            npm run test:node-python
-          fi
+          npm run check
+          npm run test
 
   platforms-unpinned:
     name: Platform matrix needs a pinned processor release
@@ -190,5 +142,5 @@ jobs:
     steps:
       - name: Report the missing pin
         run: |
-          echo "Set the processor_version input to a published processor/vX.Y.Z version to test all eight variants." >&2
+          echo "Set the processor_version input to a published processor/vX.Y.Z version to test every variant." >&2
           exit 1

@@ -39,10 +39,21 @@ A call defaults to a 30-second deadline; `timeoutMs` overrides it with a
 positive value. Pass a `MaceCancellationController` to cancel an in-flight
 call while the evaluation isolate is blocked in native code.
 
-The library is selected by OS and architecture. Linux glibc/musl is detected
-from the native loader; cross-building to a different Linux libc is not yet
-supported. Stage the native library in `bin/<target>/` before running tests
-or builds. The code-assets build hook bundles the staged library for compiled
-CLI applications: `dart build cli --target=bin/processor_smoke.dart --output build/smoke`.
-Single-file `dart compile exe` is not supported. A reusable isolate pool and
-verified production artifact staging remain to be implemented before publication.
+The library is selected by OS and architecture. Stage the native library in
+`bin/<target>/` before running tests or builds. The code-assets build hook
+bundles the staged library for compiled CLI applications:
+`dart build cli --target=bin/processor_smoke.dart --output build/smoke`.
+Single-file `dart compile exe` is not supported.
+
+## Supported platforms
+
+Libraries are published for `darwin-amd64`, `darwin-arm64`, `windows-amd64`,
+`linux-amd64-glibc`, and `linux-arm64-glibc`. On `linux-*-musl` and
+`windows-arm64` this package throws `MaceError` explaining that the processor
+does not publish a library there, rather than failing to load one. The musl
+build is excluded because it segfaults when called from C; the reason is
+recorded in the processor's `processor-targets.json`. Do not work around this
+by hand-placing a library.
+
+Verified production artifact staging remains to be implemented before
+publication.

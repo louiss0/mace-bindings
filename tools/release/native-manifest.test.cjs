@@ -17,11 +17,8 @@ const releaseManifest = {
     { target: 'darwin-amd64', artifact: 'mace-processor/darwin-amd64/libmace_processor.dylib', sha256: 'a'.repeat(64) },
     { target: 'darwin-arm64', artifact: 'mace-processor/darwin-arm64/libmace_processor.dylib', sha256: 'b'.repeat(64) },
     { target: 'linux-amd64-glibc', artifact: 'mace-processor/linux-amd64-glibc/libmace_processor.so', sha256: 'c'.repeat(64) },
-    { target: 'linux-amd64-musl', artifact: 'mace-processor/linux-amd64-musl/libmace_processor.so', sha256: 'd'.repeat(64) },
     { target: 'linux-arm64-glibc', artifact: 'mace-processor/linux-arm64-glibc/libmace_processor.so', sha256: 'e'.repeat(64) },
-    { target: 'linux-arm64-musl', artifact: 'mace-processor/linux-arm64-musl/libmace_processor.so', sha256: 'f'.repeat(64) },
     { target: 'windows-amd64', artifact: 'mace-processor/windows-amd64/mace_processor.dll', sha256: '1'.repeat(64) },
-    { target: 'windows-arm64', artifact: 'mace-processor/windows-arm64/mace_processor.dll', sha256: '2'.repeat(64) },
   ],
 }
 
@@ -29,7 +26,7 @@ test('accepts a release manifest that publishes every supported variant', async 
   const { assertCompleteRelease, parseManifest } = await loadModule()
   const manifest = assertCompleteRelease(parseManifest(releaseManifest))
   assert.equal(manifest.version, '1.2.3')
-  assert.equal(manifest.targets.size, 8)
+  assert.equal(manifest.targets.size, 5)
 })
 
 test('rejects a release manifest that is missing a variant', async () => {
@@ -60,7 +57,7 @@ test('verifies an artifact against its pinned checksum', async () => {
 test('derives platform filenames and download URLs from the release tag', async () => {
   const { filenameForTarget, releaseUrl } = await loadModule()
   assert.equal(filenameForTarget('darwin-arm64'), 'libmace_processor.dylib')
-  assert.equal(filenameForTarget('linux-arm64-musl'), 'libmace_processor.so')
+  assert.equal(filenameForTarget('linux-arm64-glibc'), 'libmace_processor.so')
   assert.equal(filenameForTarget('windows-amd64'), 'mace_processor.dll')
   assert.throws(() => filenameForTarget('plan9-amd64'), /Unsupported processor target/)
   assert.equal(
@@ -72,9 +69,11 @@ test('derives platform filenames and download URLs from the release tag', async 
 test('the bindings agree on the platform target names they publish for', async () => {
   const { supportedTargets } = await loadModule()
   assert.deepEqual([...supportedTargets].sort(), [
-    'darwin-amd64', 'darwin-arm64', 'linux-amd64-glibc', 'linux-amd64-musl',
-    'linux-arm64-glibc', 'linux-arm64-musl', 'windows-amd64', 'windows-arm64',
+    'darwin-amd64', 'darwin-arm64', 'linux-amd64-glibc', 'linux-arm64-glibc', 'windows-amd64',
   ])
+  for (const dropped of ['linux-amd64-musl', 'linux-arm64-musl', 'windows-arm64']) {
+    assert.ok(!supportedTargets.includes(dropped), `${dropped} must not be advertised before the release publishes it`)
+  }
 })
 
 test('each binding resolves the same platform target names', async () => {

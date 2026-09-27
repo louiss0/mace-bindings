@@ -1,4 +1,4 @@
-"""Bundle only the target library in wheels; retain all tested targets in sdists."""
+"""Bundle only the target library in wheels; retain all published targets in sdists."""
 
 import os
 import platform
@@ -7,15 +7,15 @@ from pathlib import Path
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
 
+# Only the targets the processor release actually publishes. musl and Windows
+# arm64 are excluded on purpose; see `unsupported` in the processor's
+# processor-targets.json. Do not add one before the release publishes it.
 NATIVE_LIBRARIES = {
     "darwin-amd64": ("libmace_processor.dylib", "macosx_11_0_x86_64"),
     "darwin-arm64": ("libmace_processor.dylib", "macosx_11_0_arm64"),
     "windows-amd64": ("mace_processor.dll", "win_amd64"),
-    "windows-arm64": ("mace_processor.dll", "win_arm64"),
     "linux-amd64-glibc": ("libmace_processor.so", "manylinux_2_17_x86_64"),
     "linux-arm64-glibc": ("libmace_processor.so", "manylinux_2_17_aarch64"),
-    "linux-amd64-musl": ("libmace_processor.so", "musllinux_1_2_x86_64"),
-    "linux-arm64-musl": ("libmace_processor.so", "musllinux_1_2_aarch64"),
 }
 
 

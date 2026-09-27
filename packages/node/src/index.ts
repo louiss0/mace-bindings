@@ -30,6 +30,15 @@ export class MaceError extends Error {
   }
 }
 
+/** Only the targets the processor release publishes; see tools/native/manifest.mjs. */
+const supportedTargets = new Set([
+  'darwin-amd64',
+  'darwin-arm64',
+  'linux-amd64-glibc',
+  'linux-arm64-glibc',
+  'windows-amd64',
+])
+
 async function loadLibrary() {
   const libc = (process.report.getReport() as { header?: { glibcVersionRuntime?: string } }).header?.glibcVersionRuntime ? 'glibc' : 'musl'
   const targets: Record<string, string> = {
@@ -42,6 +51,9 @@ async function loadLibrary() {
   }
   const target = targets[`${process.platform}-${process.arch}`]
   if (!target) throw new MaceError('Unsupported native processor platform')
+  if (!supportedTargets.has(target)) {
+    throw new MaceError(`The processor does not publish a library for ${target} yet. musl and Windows arm64 are not released.`)
+  }
   const filename = process.platform === 'win32' ? 'mace_processor.dll'
     : process.platform === 'darwin' ? 'libmace_processor.dylib' : 'libmace_processor.so'
   const path = join(dirname(fileURLToPath(import.meta.url)), '..', 'bin', target, filename)

@@ -312,6 +312,16 @@ class _Processor {
   }
 }
 
+/// Only the targets the processor release publishes; see
+/// `tools/native/manifest.mjs` in the bindings repository.
+const publishedTargets = {
+  'darwin-amd64',
+  'darwin-arm64',
+  'linux-amd64-glibc',
+  'linux-arm64-glibc',
+  'windows-amd64',
+};
+
 String _target() {
   final platform = switch (Abi.current()) {
     Abi.macosX64 => 'darwin-amd64',
@@ -322,12 +332,21 @@ String _target() {
     Abi.windowsArm64 => 'windows-arm64',
     _ => throw MaceError('Unsupported native processor platform'),
   };
-  if (!Platform.isLinux) return platform;
-  final musl =
-      File('/lib/ld-musl-x86_64.so.1').existsSync() ||
-      File('/lib/ld-musl-aarch64.so.1').existsSync();
-  return '$platform-${musl ? 'musl' : 'glibc'}';
+  final resolved = Platform.isLinux
+      ? '$platform-${_isMusl() ? 'musl' : 'glibc'}'
+      : platform;
+  if (!publishedTargets.contains(resolved)) {
+    throw MaceError(
+      'The processor does not publish a library for $resolved yet. '
+      'musl and Windows arm64 are not released.',
+    );
+  }
+  return resolved;
 }
+
+bool _isMusl() =>
+    File('/lib/ld-musl-x86_64.so.1').existsSync() ||
+    File('/lib/ld-musl-aarch64.so.1').existsSync();
 
 final class _Evaluation {
   final bool file;

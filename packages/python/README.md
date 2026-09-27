@@ -46,9 +46,17 @@ from another Python thread). All failures remain `MaceError` with distinct
 diagnostic codes for timeout and cancellation.
 
 Native libraries must be staged before building. Wheels are platform-tagged
-and contain only their target library. The sdist requires all eight supported
-libraries and carries them with the build backend configuration, so it can
-build a platform wheel offline with Hatchling already installed. The hook
-rejects missing targets and untested wheel tags. CI tests this package against
-all eight variants once a processor release is pinned, so publication is
-blocked until then.
+and contain only their target library. The sdist requires every published
+library and carries them with the build backend configuration, so it can build
+a platform wheel offline with Hatchling already installed. The hook rejects
+missing targets and untested wheel tags.
+
+## Supported platforms
+
+Libraries are published for `darwin-amd64`, `darwin-arm64`, `windows-amd64`,
+`linux-amd64-glibc`, and `linux-arm64-glibc`. On `linux-*-musl` and
+`windows-arm64` this package raises `MaceError` explaining that the processor
+does not publish a library there, rather than failing to load one. The musl
+build is excluded because it segfaults when called from C; the reason is
+recorded in the processor's `processor-targets.json`. Do not work around this
+by hand-placing a library.

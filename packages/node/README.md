@@ -49,6 +49,14 @@ timeouts reject with `MaceError` and distinct diagnostic codes.
 
 Native binaries must be staged from separately released processor artifacts
 before publishing. Staging verifies every library against the published
-manifest checksums, and CI runs this package against all eight variants, but
-neither has run against a real processor release yet, so publication is
-blocked.
+manifest checksums, and CI runs this package against every published variant.
+
+## Supported platforms
+
+Libraries are published for `darwin-amd64`, `darwin-arm64`, `windows-amd64`,
+`linux-amd64-glibc`, and `linux-arm64-glibc`. On `linux-*-musl` and
+`windows-arm64` this package throws `MaceError` explaining that the processor
+does not publish a library there, rather than failing to load one. The musl
+build is excluded because it segfaults when called from C; the reason is
+recorded in the processor's `processor-targets.json`. Do not work around this
+by hand-placing a library.
