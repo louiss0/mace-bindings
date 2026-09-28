@@ -5,6 +5,16 @@ const { readFileSync, existsSync } = require('node:fs')
 const { join } = require('node:path')
 
 const workspace = JSON.parse(readFileSync('nx.json', 'utf8'))
+
+/**
+ * Reads a checked-out file with normalised line endings. Git can check out CRLF
+ * on Windows runners, and a multi-line regex written for LF would fail there and
+ * only there.
+ */
+function readSource(...parts) {
+  return readFileSync(join(...parts), 'utf8').replaceAll('\r\n', '\n')
+}
+
 const releases = [
   ['node', 'mace-node', 'node-v{version}'],
   ['python', 'mace-python', 'python-v{version}'],
@@ -13,7 +23,7 @@ const releases = [
 
 test('Actions delegates publication to Nx instead of directly publishing packages', () => {
   for (const workflow of ['release-binding.yml', 'publish-dart.yml']) {
-    const source = readFileSync(join('.github', 'workflows', workflow), 'utf8')
+    const source = readSource('.github', 'workflows', workflow)
     assert.match(source, /nxw\.js release publish/, `${workflow} must publish through Nx`)
     assert.doesNotMatch(
       source,
@@ -49,7 +59,7 @@ test('a dry run publishes nothing', () => {
 })
 
 test('a single binding can be released on its own', () => {
-  const workflow = readFileSync('.github/workflows/release-binding.yml', 'utf8')
+  const workflow = readSource('.github', 'workflows', 'release-binding.yml')
   const options = workflow.match(/options:\n(?:\s+-\s+\w+\n)+/)[0]
   for (const binding of ['node', 'python', 'dart', 'all']) {
     assert.match(options, new RegExp(`- ${binding}\\b`), `${binding} is not selectable`)
@@ -63,8 +73,8 @@ test('a single binding can be released on its own', () => {
 // pub.dev rejects any publish that is not triggered by a matching tag push, so
 // the Dart publish must live in its own tag-triggered workflow.
 test('the Dart publish runs in a tag-triggered workflow with no pub.dev secret', () => {
-  const publish = readFileSync('.github/workflows/publish-dart.yml', 'utf8')
-  const dispatch = readFileSync('.github/workflows/release-binding.yml', 'utf8')
+  const publish = readSource('.github', 'workflows', 'publish-dart.yml')
+  const dispatch = readSource('.github', 'workflows', 'release-binding.yml')
 
   assert.match(publish, /tags:\n\s+- 'dart-v\[0-9\]\+\.\[0-9\]\+\.\[0-9\]\+'/)
   assert.match(publish, /id-token: write/)
@@ -84,7 +94,7 @@ test('the Dart publish runs in a tag-triggered workflow with no pub.dev secret',
 // minted from id-token by setup-dart.
 test('the publishing workflows carry no pub.dev credentials secret', () => {
   for (const workflow of ['release-binding.yml', 'publish-dart.yml', 'ci.yml']) {
-    const source = readFileSync(join('.github', 'workflows', workflow), 'utf8')
+    const source = readSource('.github', 'workflows', workflow)
     assert.doesNotMatch(source, /PUB_CREDENTIALS/, `${workflow} references a pub.dev secret`)
     assert.doesNotMatch(source, /pub-credentials\.json/, `${workflow} writes pub credentials`)
   }
@@ -95,6 +105,26 @@ test('the publishing workflows carry no pub.dev credentials secret', () => {
 // release-binding.yml replaced it; it must not come back.
 test('the superseded all-in-one release workflow stays deleted', () => {
   assert.equal(existsSync(join('.github', 'workflows', 'release.yml')), false)
+})
+
+// The workflow assertions above use multi-line patterns. A Windows runner
+// checks out CRLF, so a helper that does not normalise would make main red only
+// in CI. This keeps that regression local and obvious.
+test('workflow assertions are checked against a CRLF checkout', () => {
+  const unix = readSource('.github', 'workflows', 'publish-dart.yml')
+  const windows = unix.replaceAll('\n', '\r\n')
+  assert.notEqual(unix, windows)
+
+  // A multi-line pattern is what breaks under CRLF, so the readSource helper
+  // must be what the assertions go through.
+  const multiLine = /tags:\n\s+- 'dart-v\[0-9\]\+\.\[0-9\]\+\.\[0-9\]\+'/
+  assert.match(unix, multiLine)
+  assert.doesNotMatch(windows, multiLine, 'reading raw CRLF text would break this assertion')
+
+  // A single-line pattern is unaffected, which is why normalisation is the fix
+  // rather than loosening every pattern.
+  assert.match(windows, /id-token: write/)
+  assert.match(readSource('.github', 'workflows', 'publish-dart.yml'), /id-token: write/)
 })
 
 test('each binding versions independently with its own flat release tag', () => {
