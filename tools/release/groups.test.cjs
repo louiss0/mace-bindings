@@ -70,6 +70,39 @@ test('a single binding can be released on its own', () => {
   assert.match(workflow, /release version "\$specifier" \\\n\s+--groups="\$GROUPS"/)
 })
 
+// The version step already runs on the expanded $GROUPS list, so a publish step
+// that gated on the raw dispatch input would version a binding and never publish
+// it: contains('all', 'node') is false. Every publish decision reads the padded
+// group list instead.
+test('a selected group is published whether named directly or expanded from all', () => {
+  const workflow = readSource('.github', 'workflows', 'release-binding.yml')
+
+  assert.match(workflow, /echo "GROUP_LIST=,\$groups," >> "\$GITHUB_ENV"/)
+
+  const gatedBy = [
+    ['Publish Node', ',node,'],
+    ['Publish Python', ',python,'],
+    ['Push the Node and Python tags', ',node,'],
+    ['Trigger the Dart publish', ',dart,'],
+  ]
+  for (const [step, group] of gatedBy) {
+    const condition = workflow.match(new RegExp(`- name: ${step}\\n\\s+if: ([^\\n]+)`))
+    assert.ok(condition, `${step} must gate on a condition`)
+    assert.match(
+      condition[1],
+      new RegExp(`contains\\(env\\.GROUP_LIST, '${group}'\\)`),
+      `${step} must be gated on the expanded groups, not the raw input`,
+    )
+  }
+
+  // Nothing may reintroduce substring matching against the input: it silently
+  // skips a group named `all` and would match a group named inside another.
+  assert.doesNotMatch(workflow, /contains\(inputs\.binding/)
+
+  // A version commit only exists when the version step created one.
+  assert.match(workflow, /- name: Push the version commit\n\s+if: \$\{\{ !inputs\.skip_versioning \}\}/)
+})
+
 // pub.dev rejects any publish that is not triggered by a matching tag push, so
 // the Dart publish must live in its own tag-triggered workflow.
 test('the Dart publish runs in a tag-triggered workflow with no pub.dev secret', () => {

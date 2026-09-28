@@ -53,6 +53,11 @@ jobs:
             *) echo "Unknown binding: $groups" >&2; exit 1 ;;
           esac
           echo "GROUPS=$groups" >> "$GITHUB_ENV"
+          # GROUP_LIST is the same list padded with commas so a publish step can
+          # test for a whole group name. The raw input cannot be used for that:
+          # it is the literal string that was dispatched, and `all` does not
+          # contain `node`.
+          echo "GROUP_LIST=,$groups," >> "$GITHUB_ENV"
           echo "Releasing: $groups"
 
       - name: Version, commit, and tag
@@ -117,8 +122,9 @@ jobs:
           NX_DRY_RUN: 'true'
         run: node .nx/nxw.js release publish --groups="$GROUPS" --nxBail
 
+      # A commit exists only when the version step ran and created one.
       - name: Push the version commit
-        if: ${{ inputs.binding != 'all' || !inputs.skip_versioning }}
+        if: ${{ !inputs.skip_versioning }}
         run: git push origin HEAD:main
 
       # The registry tokens live in 1Password, not in GitHub secrets. They are
@@ -136,17 +142,17 @@ jobs:
           UV_PUBLISH_TOKEN: op://Development/PY_TOKEN/credential
 
       - name: Publish Node
-        if: ${{ contains(inputs.binding, 'node') }}
+        if: ${{ contains(env.GROUP_LIST, ',node,') }}
         run: node .nx/nxw.js release publish --groups=node --nxBail
 
       - name: Publish Python
-        if: ${{ contains(inputs.binding, 'python') }}
+        if: ${{ contains(env.GROUP_LIST, ',python,') }}
         run: node .nx/nxw.js release publish --groups=python --nxBail
 
       - name: Push the Node and Python tags
-        if: ${{ contains(inputs.binding, 'node') || contains(inputs.binding, 'python') }}
+        if: ${{ contains(env.GROUP_LIST, ',node,') || contains(env.GROUP_LIST, ',python,') }}
         run: git push origin $(git tag --list 'node-v*' 'python-v*')
 
       - name: Trigger the Dart publish
-        if: ${{ contains(inputs.binding, 'dart') }}
+        if: ${{ contains(env.GROUP_LIST, ',dart,') }}
         run: git push origin $(git tag --list 'dart-v*')
