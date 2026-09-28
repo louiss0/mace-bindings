@@ -9,6 +9,7 @@ on:
   push:
     tags:
       - 'dart-v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -56,7 +57,7 @@ jobs:
             echo "Tag $GITHUB_REF_NAME does not match pubspec version $declared." >&2
             exit 1
           fi
-          echo "Publishing mace_dart $declared"
+          echo "Publishing mace-dart $declared"
 
       - name: Publish Dart through Nx Release
         run: node .nx/nxw.js release publish --groups=dart --nxBail
