@@ -60,6 +60,12 @@ jobs:
           echo "GROUP_LIST=,$groups," >> "$GITHUB_ENV"
           echo "Releasing: $groups"
 
+      - name: Configure Git author
+        if: ${{ !inputs.skip_versioning }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - name: Version, commit, and tag
         if: ${{ !inputs.skip_versioning }}
         run: |
