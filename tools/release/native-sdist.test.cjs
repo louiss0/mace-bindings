@@ -18,7 +18,7 @@ test('sdist contains all supported native variants and builds a single-platform 
   const fixture = mkdtempSync(join(tmpdir(), 'mace-native-sdist-'))
   try {
     const packageRoot = join('packages', 'python')
-    for (const filename of ['pyproject.toml', 'hatch_build.py', 'README.md']) {
+    for (const filename of ['pyproject.toml', 'hatch_build.py', 'native_targets.json', 'README.md']) {
       copyFileSync(join(packageRoot, filename), join(fixture, filename))
     }
     const source = join(fixture, 'src', 'mace_python')
@@ -43,6 +43,7 @@ test('sdist contains all supported native variants and builds a single-platform 
       assert.ok(existsSync(join(extracted, 'src', 'mace_python', 'bin', target, nativeName(target))))
     }
     assert.ok(existsSync(join(extracted, 'hatch_build.py')))
+    assert.ok(existsSync(join(extracted, 'native_targets.json')))
 
     const environment = { ...process.env, MACE_NATIVE_TARGET: 'windows-amd64', MACE_WHEEL_PLATFORM: 'win_amd64' }
     // An offline wheel build only needs an already installed PEP 517 backend.

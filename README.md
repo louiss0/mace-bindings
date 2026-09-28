@@ -1,43 +1,59 @@
-# Mace bindings
+# mace_dart
 
-Official Node, Python, and Dart bindings for the Mace processor. The bindings
-are built on the processor's separately built C ABI; the Mace CLI
-remains a distinct release. **Do not publish these packages yet:** the release
-gates exist, but the platform matrix has not yet run against a real published
-processor release.
+Dart FFI bindings for the Mace processor shared library. Dart 3.12.2+ runs
+processor evaluation in a separate isolate instead of launching a CLI process.
+
+```dart
+import 'package:mace_dart/mace_dart.dart';
+
+final value = await json('./config.mace', cwd: '.');
+final inline = await transform("[output = 'data']\n{ name: 'Ada', }");
+final runtime = await json('./runtime.mace', input: '{ env: "prod", }');
+```
+
+`json(path, {input?, cwd?, timeoutMs?, cancellation?})` reads a file inside the workspace root `cwd`.
+`transform(source, {input?, cwd?, sourceName?, timeoutMs?, cancellation?})` evaluates source directly,
+resolving imports against that workspace. `input` is a Mace record literal.
+`jsonText` and `output` remain as deprecated aliases; CLI-backed `import*`
+functions and `macePath` are removed. Results contain nested Dart maps and
+lists. Errors retain `MaceError` with structured diagnostics; `exitCode` is
+compatibility-only.
+
+## Security: remote imports are not sandboxed
+
+`cwd` bounds the entry file and every *local* import, but HTTP(S) imports are
+deliberately unrestricted. A `.mace` file you did not write can contain:
+
+```mace
+from 'http://169.254.169.254/latest/meta-data/iam/' import Role;
+```
+
+Evaluating it makes this process issue that request, including to cloud
+metadata endpoints or hosts behind your firewall. There is no allowlist, no
+per-origin opt-in, and no egress control. If you evaluate configuration from an
+untrusted source, do not use this package on a host with sensitive network
+reachability, or pre-validate the file for `http://` and `https://` imports
+yourself.
+
+A call defaults to a 30-second deadline; `timeoutMs` overrides it with a
+positive value. Pass a `MaceCancellationController` to cancel an in-flight
+call while the evaluation isolate is blocked in native code.
+
+The library is selected by OS and architecture. Stage the native library in
+`bin/<target>/` before running tests or builds. The code-assets build hook
+bundles the staged library for compiled CLI applications:
+`dart build cli --target=bin/processor_smoke.dart --output build/smoke`.
+Single-file `dart compile exe` is not supported.
+
+## Supported platforms
 
 Libraries are published for `darwin-amd64`, `darwin-arm64`, `windows-amd64`,
-`linux-amd64-glibc`, and `linux-arm64-glibc`. `linux-amd64-musl`,
-`linux-arm64-musl`, and `windows-arm64` are **not** supported: the musl build
-segfaults when called from C, and the Windows arm64 runner has no cross
-toolchain. Every binding raises a clear "not published for this platform"
-error there instead of trying to load a library. The reasons live in the
-processor's `processor-targets.json`.
+`linux-amd64-glibc`, and `linux-arm64-glibc`. On `linux-*-musl` and
+`windows-arm64` this package throws `MaceError` explaining that the processor
+does not publish a library there, rather than failing to load one. The musl
+build is excluded because it segfaults when called from C; the reason is
+recorded in the processor's `processor-targets.json`. Do not work around this
+by hand-placing a library.
 
-- `packages/node` — `@code-fixer-23/mace-node` (Koffi)
-- `packages/python` — `mace-python` (`ctypes`)
-- `packages/dart` — `mace_dart` (Dart FFI)
-
-All three return evaluated records through processor calls. They no longer
-implement CLI-only conversion/import functions. Consult each package README
-for source/file evaluation, compatibility aliases, and diagnostics.
-
-Nx owns versioning, tagging, and publishing. The old CLI binary-sync workflow
-has been removed, and each binding now has its own independent release group
-with a `node-v`, `python-v`, or `dart-v` tag. The release workflow delegates
-publication to Nx rather than publishing packages itself. Every Nx command
-must run with `NX_DAEMON=false`. For local development with a C compiler, run
-`nu tools/native/stage-local.nu` from this repo to build and stage the host
-library from `../mace`. Then run `npm run check` and `npm run test`. Published
-artifacts come from the processor release pinned in
-[`tools/native/processor.json`](tools/native/processor.json).
-`node tools/native/stage-release.mjs [target ...]` stages every pinned variant
-(or just the named ones) into all three packages. It first checks the published
-manifest against the `manifestSha256` recorded in the pin, then verifies every
-library against the SHA-256 inside that manifest, so a replaced manifest or a
-tampered library is rejected. CI uses this path with no arguments, and the
-`bin/` directories stay gitignored because they are build inputs, not sources.
-The local staging script is not a release path. Set `MACE_REPOSITORY` to build
-the processor from a checkout that is not a sibling of this repository.
-
-The bindings are MIT licensed; see [LICENSE](LICENSE).
+The release workflow stages the pinned processor artifact and runs these
+tests against it before anything is published.

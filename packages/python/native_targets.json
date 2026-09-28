@@ -1,0 +1,22 @@
+{
+  "darwin-amd64": {
+    "library": "libmace_processor.dylib",
+    "wheelTag": "macosx_11_0_x86_64"
+  },
+  "darwin-arm64": {
+    "library": "libmace_processor.dylib",
+    "wheelTag": "macosx_11_0_arm64"
+  },
+  "windows-amd64": {
+    "library": "mace_processor.dll",
+    "wheelTag": "win_amd64"
+  },
+  "linux-amd64-glibc": {
+    "library": "libmace_processor.so",
+    "wheelTag": "manylinux_2_17_x86_64"
+  },
+  "linux-arm64-glibc": {
+    "library": "libmace_processor.so",
+    "wheelTag": "manylinux_2_17_aarch64"
+  }
+}

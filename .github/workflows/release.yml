@@ -1,9 +1,18 @@
 name: Release
 
-# Publication stays blocked until native artifacts pass the eight-variant gate.
-# Nx owns package versioning, tagging, and publishing.
+# Nx owns package versioning, tagging, and publication. The processor libraries
+# come from the release pinned in tools/native/processor.json, verified against
+# the published manifest before any of them is bundled.
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: Nx specifier to version with, for example major or minor
+        required: false
+      skip_versioning:
+        description: Publish the versions already on disk
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -12,11 +21,6 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Prevent incomplete native release
-        run: |
-          echo "Verified processor artifacts, installed-package platform tests, and the Dart tag-push OIDC job are not configured yet." >&2
-          exit 1
-
       - name: Checkout
         uses: actions/checkout@v5
         with:
@@ -41,18 +45,43 @@ jobs:
       - name: Set up Dart
         uses: dart-lang/setup-dart@v1
 
+      - name: Version, commit, and tag
+        if: ${{ !inputs.skip_versioning }}
+        env:
+          NX_DAEMON: 'false'
+        run: |
+          set -euo pipefail
+          specifier="${{ inputs.version }}"
+          if [[ -z "$specifier" ]]; then
+            echo "Give a version specifier, or set skip_versioning to publish the versions on disk." >&2
+            exit 1
+          fi
+          node .nx/nxw.js release version "$specifier" \
+            --groups=node,python,dart --git-commit --git-tag --git-push
+
       - name: Install dependencies
         run: |
           pnpm install --dir packages/node --frozen-lockfile
           dart pub get -C packages/dart
+
+      # Without this the Python build cannot bundle an sdist or tag a wheel.
+      - name: Stage the pinned processor artifacts
+        run: node tools/native/stage-release.mjs
 
       - name: Validate workspace
         run: |
           npm run check
           npm run test
 
-      - name: Build packages
-        run: npm run build
+      - name: Build every distribution
+        run: |
+          pnpm --dir packages/node run build
+          node tools/release/build-python.mjs
+
+      - name: Prove the publish commands succeed without publishing
+        env:
+          NX_DRY_RUN: 'true'
+        run: node .nx/nxw.js release publish --groups=node,python,dart --nxBail
 
       - name: Load publish credentials
         id: load_secrets

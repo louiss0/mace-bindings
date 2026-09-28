@@ -1,5 +1,6 @@
 """Bundle only the target library in wheels; retain all published targets in sdists."""
 
+import json
 import os
 import platform
 from pathlib import Path
@@ -7,16 +8,11 @@ from pathlib import Path
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
 
-# Only the targets the processor release actually publishes. musl and Windows
-# arm64 are excluded on purpose; see `unsupported` in the processor's
-# processor-targets.json. Do not add one before the release publishes it.
-NATIVE_LIBRARIES = {
-    "darwin-amd64": ("libmace_processor.dylib", "macosx_11_0_x86_64"),
-    "darwin-arm64": ("libmace_processor.dylib", "macosx_11_0_arm64"),
-    "windows-amd64": ("mace_processor.dll", "win_amd64"),
-    "linux-amd64-glibc": ("libmace_processor.so", "manylinux_2_17_x86_64"),
-    "linux-arm64-glibc": ("libmace_processor.so", "manylinux_2_17_aarch64"),
-}
+# The single source of truth for published Python platforms. The release
+# tooling reads the same file, so a target can never be built for a wheel tag the
+# hook would reject. musl and Windows arm64 are excluded on purpose; see
+# `unsupported` in the processor's processor-targets.json.
+NATIVE_LIBRARIES = json.loads((Path(__file__).parent / "native_targets.json").read_text(encoding="utf-8"))
 
 
 def current_target() -> str:
@@ -34,7 +30,11 @@ class CustomBuildHook(BuildHookInterface):
     def initialize(self, version, build_data):
         native_root = Path(self.root) / "src" / "mace_python" / "bin"
         if self.target_name == "sdist":
-            missing = [target for target, (name, _) in NATIVE_LIBRARIES.items() if not (native_root / target / name).is_file()]
+            missing = [
+                target
+                for target, entry in NATIVE_LIBRARIES.items()
+                if not (native_root / target / entry["library"]).is_file()
+            ]
             if missing:
                 raise RuntimeError(f"Cannot publish an incomplete native sdist; missing: {', '.join(missing)}")
             return
@@ -44,7 +44,7 @@ class CustomBuildHook(BuildHookInterface):
         target = os.environ.get("MACE_NATIVE_TARGET") or current_target()
         if target not in NATIVE_LIBRARIES:
             raise RuntimeError(f"Unsupported processor target: {target}")
-        name, expected_tag = NATIVE_LIBRARIES[target]
+        name, expected_tag = NATIVE_LIBRARIES[target]["library"], NATIVE_LIBRARIES[target]["wheelTag"]
         tag = os.environ.get("MACE_WHEEL_PLATFORM")
         if tag != expected_tag:
             raise RuntimeError(f"Processor target {target} requires tested wheel tag {expected_tag}, got {tag!r}")

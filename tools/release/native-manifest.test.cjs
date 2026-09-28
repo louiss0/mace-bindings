@@ -96,7 +96,14 @@ test('the bindings agree on the platform target names they publish for', async (
 test('each binding resolves the same platform target names', async () => {
   const { supportedTargets } = await loadModule()
   const nodeSource = readFileSync(join('packages', 'node', 'src', 'index.ts'), 'utf8')
+  const pythonTargets = JSON.parse(
+    readFileSync(join('packages', 'python', 'native_targets.json'), 'utf8'),
+  )
   const pythonBuild = readFileSync(join('packages', 'python', 'hatch_build.py'), 'utf8')
+
+  // The Python build must read the shared mapping, not repeat it, so a wheel can
+  // never be tagged for a platform the hook would reject.
+  assert.match(pythonBuild, /native_targets\.json/)
 
   for (const target of supportedTargets) {
     const [system, arch] = target.split('-')
@@ -109,8 +116,10 @@ test('each binding resolves the same platform target names', async () => {
     } else {
       assert.ok(nodeSource.includes(`'${platform}': '${target}'`), `node is missing ${target}`)
     }
-    assert.ok(pythonBuild.includes(`"${target}":`), `python is missing ${target}`)
+    assert.ok(pythonTargets[target], `python is missing ${target}`)
+    assert.match(pythonTargets[target].wheelTag, /^[a-z0-9_]+$/)
   }
+  assert.deepEqual(Object.keys(pythonTargets).sort(), [...supportedTargets].sort())
 
   // Linux targets are only correct if Node detects the C library it will run on.
   assert.ok(nodeSource.includes("'glibc' : 'musl'"), 'node does not select a Linux C library')

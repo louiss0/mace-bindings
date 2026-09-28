@@ -24,11 +24,9 @@
       "cache": false
     },
     "nx-release-publish": {
-      "executor": "@nx/js:release-publish",
+      "command": "node tools/release/publish-node.cjs",
       "dependsOn": ["build"],
-      "options": {
-        "packageRoot": "packages/node"
-      }
+      "cache": false
     }
   }
 }
