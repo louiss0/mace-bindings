@@ -1,7 +1,7 @@
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { execFileSync } = require('node:child_process')
-const { readFileSync } = require('node:fs')
+const { readFileSync, existsSync } = require('node:fs')
 const { join } = require('node:path')
 
 const workspace = JSON.parse(readFileSync('nx.json', 'utf8'))
@@ -12,9 +12,15 @@ const releases = [
 ]
 
 test('Actions delegates publication to Nx instead of directly publishing packages', () => {
-  const workflow = readFileSync('.github/workflows/release.yml', 'utf8')
-  assert.match(workflow, /nxw\.js release publish/)
-  assert.doesNotMatch(workflow, /run:\s*(?:pnpm publish|uv publish|dart pub publish)/)
+  for (const workflow of ['release-binding.yml', 'publish-dart.yml']) {
+    const source = readFileSync(join('.github', 'workflows', workflow), 'utf8')
+    assert.match(source, /nxw\.js release publish/, `${workflow} must publish through Nx`)
+    assert.doesNotMatch(
+      source,
+      /run:\s*(?:pnpm publish|uv publish|dart pub publish)\b/,
+      `${workflow} must not publish a package directly`,
+    )
+  }
 })
 
 // The release workflow proves every publish command works before touching a
@@ -71,18 +77,24 @@ test('the Dart publish runs in a tag-triggered workflow with no pub.dev secret',
   assert.doesNotMatch(dispatch, /release publish --groups=dart/)
 })
 
-// Known debt: release.yml still carries a "Write Dart publish credentials" step
-// that references a pub.dev secret which cannot exist and cannot work, because
-// pub.dev rejects a workflow_dispatch publish. release.yml is superseded by
-// release-binding.yml and needs deleting by hand; this check is deliberately
-// scoped to the workflows that own publishing today so the debt stays visible
-// here rather than blocking every run.
+// The superseded all-in-one release workflow was removed. Publishing now goes
+// through release-binding.yml (node, python, dart, or all) and the tag-triggered
+// publish-dart.yml. None of them may reintroduce a pub.dev credentials secret:
+// pub.dev rejects workflow_dispatch publishes, so the credential is always
+// minted from id-token by setup-dart.
 test('the publishing workflows carry no pub.dev credentials secret', () => {
   for (const workflow of ['release-binding.yml', 'publish-dart.yml', 'ci.yml']) {
     const source = readFileSync(join('.github', 'workflows', workflow), 'utf8')
     assert.doesNotMatch(source, /PUB_CREDENTIALS/, `${workflow} references a pub.dev secret`)
     assert.doesNotMatch(source, /pub-credentials\.json/, `${workflow} writes pub credentials`)
   }
+})
+
+// The old all-in-one workflow published every binding from a workflow_dispatch
+// run, which pub.dev rejects, and needed a pub.dev secret that cannot exist.
+// release-binding.yml replaced it; it must not come back.
+test('the superseded all-in-one release workflow stays deleted', () => {
+  assert.equal(existsSync(join('.github', 'workflows', 'release.yml')), false)
 })
 
 test('each binding versions independently with its own flat release tag', () => {
