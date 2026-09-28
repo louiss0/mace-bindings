@@ -121,16 +121,26 @@ jobs:
         if: ${{ inputs.binding != 'all' || !inputs.skip_versioning }}
         run: git push origin HEAD:main
 
+      # The registry tokens live in 1Password, not in GitHub secrets. They are
+      # resolved here, after the dry run has passed, so neither token is in the
+      # environment of the build, test, or versioning steps above. The service
+      # account token is the only GitHub secret involved; it must have read
+      # access to both items in the Development vault.
+      - name: Load the registry tokens from 1Password
+        uses: 1password/load-secrets-action@v5
+        with:
+          export-env: true
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          NODE_AUTH_TOKEN: op://Development/Code Fixer 23 NPM Token/credential
+          UV_PUBLISH_TOKEN: op://Development/PY_TOKEN/credential
+
       - name: Publish Node
         if: ${{ contains(inputs.binding, 'node') }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: node .nx/nxw.js release publish --groups=node --nxBail
 
       - name: Publish Python
         if: ${{ contains(inputs.binding, 'python') }}
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYTPI_TOKEN }}
         run: node .nx/nxw.js release publish --groups=python --nxBail
 
       - name: Push the Node and Python tags
