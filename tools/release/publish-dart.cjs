@@ -16,6 +16,11 @@ if (!version) {
   throw new Error('Unable to determine the Dart package version from pubspec.yaml.')
 }
 
+const requestedVersion = process.env.DART_VERSION
+if (requestedVersion && requestedVersion !== version) {
+  throw new Error(`Requested Dart version ${requestedVersion} does not match pubspec version ${version}.`)
+}
+
 execFileSync('dart', ['pub', 'publish', '--force'], {
   cwd: packageDirectory,
   stdio: 'inherit',

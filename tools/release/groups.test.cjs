@@ -22,15 +22,9 @@ const releases = [
 ]
 
 test('Actions delegates publication to Nx instead of directly publishing packages', () => {
-  for (const workflow of ['release-binding.yml', 'publish-dart.yml']) {
-    const source = readSource('.github', 'workflows', workflow)
-    assert.match(source, /nxw\.js release publish/, `${workflow} must publish through Nx`)
-    assert.doesNotMatch(
-      source,
-      /run:\s*(?:pnpm publish|uv publish|dart pub publish)\b/,
-      `${workflow} must not publish a package directly`,
-    )
-  }
+  const workflow = readSource('.github', 'workflows', 'release-binding.yml')
+  assert.match(workflow, /nxw\.js release publish/)
+  assert.doesNotMatch(workflow, /run:\s*(?:pnpm publish|uv publish|dart pub publish)\b/)
 })
 
 // The release workflow proves every publish command works before touching a
@@ -83,7 +77,7 @@ test('a selected group is published whether named directly or expanded from all'
     ['Publish Node', ',node,'],
     ['Publish Python', ',python,'],
     ['Push the Node and Python tags', ',node,'],
-    ['Trigger the Dart publish', ',dart,'],
+    ['Push the Dart tag', ',dart,'],
   ]
   for (const [step, group] of gatedBy) {
     const condition = workflow.match(new RegExp(`- name: ${step}\\n\\s+if: ([^\\n]+)`))
@@ -103,30 +97,23 @@ test('a selected group is published whether named directly or expanded from all'
   assert.match(workflow, /- name: Push the version commit\n\s+if: \$\{\{ !inputs\.skip_versioning \}\}/)
 })
 
-// pub.dev rejects any publish that is not triggered by a matching tag push, so
-// the Dart publish must live in its own tag-triggered workflow.
-test('the Dart publish runs in a tag-triggered workflow with no pub.dev secret', () => {
-  const publish = readSource('.github', 'workflows', 'publish-dart.yml')
-  const dispatch = readSource('.github', 'workflows', 'release-binding.yml')
+// pub.dev only grants an OIDC publishing token to a matching tag run. The Dart
+// job therefore shares the release workflow file while remaining isolated from
+// its workflow_dispatch job.
+test('the Dart publish runs from a Dart tag in the unified workflow', () => {
+  const workflow = readSource('.github', 'workflows', 'release-binding.yml')
 
-  assert.match(publish, /tags:\n\s+- 'dart-v\[0-9\]\+\.\[0-9\]\+\.\[0-9\]\+'/)
-  assert.match(publish, /id-token: write/)
-  assert.match(publish, /dart-lang\/setup-dart@v1/)
-  assert.match(publish, /release publish --groups=dart --nxBail/)
-  assert.doesNotMatch(publish, /PUB_CREDENTIALS|pub-credentials\.json|api_token/)
-
-  // The dispatch workflow triggers it by pushing the tag, never by publishing.
-  assert.match(dispatch, /git push origin \$\(git tag --list 'dart-v\*'\)/)
-  assert.doesNotMatch(dispatch, /release publish --groups=dart/)
+  assert.match(workflow, /tags:\n\s+- 'dart-v\[0-9\]\+\.\[0-9\]\+\.\[0-9\]\+'/)
+  assert.match(workflow, /id-token: write/)
+  assert.match(workflow, /if: github\.event_name == 'push'/)
+  assert.match(workflow, /DART_VERSION="\$\{GITHUB_REF_NAME#dart-v\}"/)
+  assert.match(workflow, /release publish --groups=dart --nxBail/)
+  assert.doesNotMatch(workflow, /PUB_CREDENTIALS|pub-credentials\.json|api_token/)
+  assert.equal(existsSync(join('.github', 'workflows', 'publish-dart.yml')), false)
 })
 
-// The superseded all-in-one release workflow was removed. Publishing now goes
-// through release-binding.yml (node, python, dart, or all) and the tag-triggered
-// publish-dart.yml. None of them may reintroduce a pub.dev credentials secret:
-// pub.dev rejects workflow_dispatch publishes, so the credential is always
-// minted from id-token by setup-dart.
 test('the publishing workflows carry no pub.dev credentials secret', () => {
-  for (const workflow of ['release-binding.yml', 'publish-dart.yml', 'ci.yml']) {
+  for (const workflow of ['release-binding.yml', 'ci.yml']) {
     const source = readSource('.github', 'workflows', workflow)
     assert.doesNotMatch(source, /PUB_CREDENTIALS/, `${workflow} references a pub.dev secret`)
     assert.doesNotMatch(source, /pub-credentials\.json/, `${workflow} writes pub credentials`)
@@ -144,7 +131,7 @@ test('the superseded all-in-one release workflow stays deleted', () => {
 // checks out CRLF, so a helper that does not normalise would make main red only
 // in CI. This keeps that regression local and obvious.
 test('workflow assertions are checked against a CRLF checkout', () => {
-  const unix = readSource('.github', 'workflows', 'publish-dart.yml')
+  const unix = readSource('.github', 'workflows', 'release-binding.yml')
   const windows = unix.replaceAll('\n', '\r\n')
   assert.notEqual(unix, windows)
 
@@ -157,7 +144,7 @@ test('workflow assertions are checked against a CRLF checkout', () => {
   // A single-line pattern is unaffected, which is why normalisation is the fix
   // rather than loosening every pattern.
   assert.match(windows, /id-token: write/)
-  assert.match(readSource('.github', 'workflows', 'publish-dart.yml'), /id-token: write/)
+  assert.match(readSource('.github', 'workflows', 'release-binding.yml'), /id-token: write/)
 })
 
 test('each binding versions independently with its own flat release tag', () => {
