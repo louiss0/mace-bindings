@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 
 const libraryFilenames = {
   darwin: 'libmace_processor.dylib',
@@ -29,6 +31,30 @@ export function filenameForTarget(target) {
 
 export function releaseUrl(version, asset) {
   return `https://github.com/louiss0/mace/releases/download/processor%2Fv${version}/${asset}`
+}
+
+/** The processor release these bindings are built against. */
+export async function readPin() {
+  const path = fileURLToPath(new URL('./processor.json', import.meta.url))
+  const pin = JSON.parse(await readFile(path, 'utf8'))
+  if (!pin.version || !pin.manifestSha256) {
+    throw new Error('tools/native/processor.json must record version and manifestSha256')
+  }
+  return pin
+}
+
+/**
+ * Rejects a manifest that is not the one recorded in the pin. Without this the
+ * digests inside a replaced manifest would validate its own artifacts.
+ */
+export function verifyPinnedManifest(pin, contents) {
+  const digest = createHash('sha256').update(contents).digest('hex')
+  if (digest !== pin.manifestSha256) {
+    throw new Error(
+      `Processor manifest for v${pin.version} does not match the pin: expected ${pin.manifestSha256}, got ${digest}`,
+    )
+  }
+  return contents
 }
 
 export function parseManifest(manifest) {

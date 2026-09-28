@@ -29,11 +29,15 @@ publication to Nx rather than publishing packages itself. Every Nx command
 must run with `NX_DAEMON=false`. For local development with a C compiler, run
 `nu tools/native/stage-local.nu` from this repo to build and stage the host
 library from `../mace`. Then run `npm run check` and `npm run test`. Published
-artifacts must instead come from a verified processor release:
-`node tools/native/stage-release.mjs <version> [target ...]` downloads the
-published `processor-manifest.json`, verifies each library against its pinned
-SHA-256, and stages it into every binding. The local staging script is not a
-release path. Set `MACE_REPOSITORY` to build the processor from a checkout
-that is not a sibling of this repository.
+artifacts come from the processor release pinned in
+[`tools/native/processor.json`](tools/native/processor.json).
+`node tools/native/stage-release.mjs [target ...]` stages every pinned variant
+(or just the named ones) into all three packages. It first checks the published
+manifest against the `manifestSha256` recorded in the pin, then verifies every
+library against the SHA-256 inside that manifest, so a replaced manifest or a
+tampered library is rejected. CI uses this path with no arguments, and the
+`bin/` directories stay gitignored because they are build inputs, not sources.
+The local staging script is not a release path. Set `MACE_REPOSITORY` to build
+the processor from a checkout that is not a sibling of this repository.
 
 The bindings are MIT licensed; see [LICENSE](LICENSE).

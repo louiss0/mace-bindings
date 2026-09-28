@@ -66,6 +66,23 @@ test('derives platform filenames and download URLs from the release tag', async 
   )
 })
 
+test('rejects a manifest that does not match the recorded pin', async () => {
+  const { readPin, verifyPinnedManifest } = await loadModule()
+  const pin = await readPin()
+  const contents = Buffer.from(JSON.stringify(releaseManifest))
+  assert.throws(() => verifyPinnedManifest(pin, contents), /does not match the pin/)
+  assert.throws(() => verifyPinnedManifest({ version: '0.1.0', manifestSha256: 'a'.repeat(64) }, contents), /does not match the pin/)
+})
+
+test('the pin names a real processor release layout', async () => {
+  const { readPin } = await loadModule()
+  const pin = await readPin()
+  assert.match(pin.version, /^\d+\.\d+\.\d+$/)
+  assert.equal(pin.release, `processor/v${pin.version}`)
+  assert.match(pin.manifestSha256, /^[0-9a-f]{64}$/)
+  assert.ok(pin.repository, 'the pin must name the repository it downloads from')
+})
+
 test('the bindings agree on the platform target names they publish for', async () => {
   const { supportedTargets } = await loadModule()
   assert.deepEqual([...supportedTargets].sort(), [
