@@ -29,7 +29,7 @@
         "projects": ["mace-dart"],
         "projectsRelationship": "independent",
         "releaseTag": {
-          "pattern": "v{version}"
+          "pattern": "dart-v{version}"
         }
       }
     },

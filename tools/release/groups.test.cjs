@@ -18,7 +18,7 @@ function readSource(...parts) {
 const releases = [
   ['node', 'mace-node', 'node-v{version}'],
   ['python', 'mace-python', 'python-v{version}'],
-  ['dart', 'mace-dart', 'v{version}'],
+  ['dart', 'mace-dart', 'dart-v{version}'],
 ]
 
 test('Actions delegates publication to Nx instead of directly publishing packages', () => {
