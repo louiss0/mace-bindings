@@ -6,7 +6,7 @@ name: Release one binding
 on:
   push:
     tags:
-      - 'dart-v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
     inputs:
       binding:
@@ -163,7 +163,13 @@ jobs:
 
       - name: Push the Dart tag
         if: ${{ contains(env.GROUP_LIST, ',dart,') }}
-        run: git push origin $(git tag --list 'dart-v*')
+        run: |
+          version="$(node -e "
+            const {readFileSync} = require('node:fs');
+            const pubspec = readFileSync('packages/dart/pubspec.yaml', 'utf8');
+            process.stdout.write(pubspec.match(/^version:\s*(\S+)/m)[1]);
+          ")"
+          git push origin "v$version"
 
   publish-dart:
     if: github.event_name == 'push'
@@ -197,7 +203,8 @@ jobs:
       - name: Extract and verify the Dart version
         run: |
           set -euo pipefail
-          DART_VERSION="${GITHUB_REF_NAME#dart-v}"
+          DART_RELEASE_TAG="$GITHUB_REF_NAME"
+          DART_VERSION="${DART_RELEASE_TAG#v}"
           declared="$(node -e "
             const {readFileSync} = require('node:fs');
             const pubspec = readFileSync('packages/dart/pubspec.yaml', 'utf8');
@@ -207,6 +214,7 @@ jobs:
             echo "Tag $GITHUB_REF_NAME does not match pubspec version $declared." >&2
             exit 1
           fi
+          echo "DART_RELEASE_TAG=$DART_RELEASE_TAG" >> "$GITHUB_ENV"
           echo "DART_VERSION=$DART_VERSION" >> "$GITHUB_ENV"
 
       - name: Publish Dart

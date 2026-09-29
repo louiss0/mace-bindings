@@ -16,7 +16,11 @@ if (!version) {
   throw new Error('Unable to determine the Dart package version from pubspec.yaml.')
 }
 
+const releaseTag = process.env.DART_RELEASE_TAG
 const requestedVersion = process.env.DART_VERSION
+if (releaseTag && releaseTag !== `v${version}`) {
+  throw new Error(`Dart release tag ${releaseTag} does not match pubspec version ${version}.`)
+}
 if (requestedVersion && requestedVersion !== version) {
   throw new Error(`Requested Dart version ${requestedVersion} does not match pubspec version ${version}.`)
 }

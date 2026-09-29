@@ -18,7 +18,7 @@ function readSource(...parts) {
 const releases = [
   ['node', 'mace-node', 'node-v{version}'],
   ['python', 'mace-python', 'python-v{version}'],
-  ['dart', 'mace-dart', 'dart-v{version}'],
+  ['dart', 'mace-dart', 'v{version}'],
 ]
 
 test('Actions delegates publication to Nx instead of directly publishing packages', () => {
@@ -103,10 +103,11 @@ test('a selected group is published whether named directly or expanded from all'
 test('the Dart publish runs from a Dart tag in the unified workflow', () => {
   const workflow = readSource('.github', 'workflows', 'release-binding.yml')
 
-  assert.match(workflow, /tags:\n\s+- 'dart-v\[0-9\]\+\.\[0-9\]\+\.\[0-9\]\+'/)
+  assert.match(workflow, /tags:\n\s+- 'v\[0-9\]\+\.\[0-9\]\+\.\[0-9\]\+'/)
   assert.match(workflow, /id-token: write/)
   assert.match(workflow, /if: github\.event_name == 'push'/)
-  assert.match(workflow, /DART_VERSION="\$\{GITHUB_REF_NAME#dart-v\}"/)
+  assert.match(workflow, /DART_RELEASE_TAG="\$GITHUB_REF_NAME"/)
+  assert.match(workflow, /DART_VERSION="\$\{DART_RELEASE_TAG#v\}"/)
   assert.match(workflow, /release publish --groups=dart --nxBail/)
   assert.doesNotMatch(workflow, /PUB_CREDENTIALS|pub-credentials\.json|api_token/)
   assert.equal(existsSync(join('.github', 'workflows', 'publish-dart.yml')), false)
@@ -137,7 +138,7 @@ test('workflow assertions are checked against a CRLF checkout', () => {
 
   // A multi-line pattern is what breaks under CRLF, so the readSource helper
   // must be what the assertions go through.
-  const multiLine = /tags:\n\s+- 'dart-v\[0-9\]\+\.\[0-9\]\+\.\[0-9\]\+'/
+  const multiLine = /tags:\n\s+- 'v\[0-9\]\+\.\[0-9\]\+\.\[0-9\]\+'/
   assert.match(unix, multiLine)
   assert.doesNotMatch(windows, multiLine, 'reading raw CRLF text would break this assertion')
 
