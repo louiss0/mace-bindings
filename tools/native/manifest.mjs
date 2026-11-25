@@ -66,7 +66,19 @@ export function parseManifest(manifest) {
     }
     byTarget.set(entry.target, entry)
   }
-  return { version: manifest.version, targets: byTarget }
+
+  let header = null
+  if (manifest?.header != null) {
+    if (!manifest.header.artifact || !manifest.header.sha256) {
+      throw new Error(`Processor manifest header is incomplete: ${JSON.stringify(manifest.header)}`)
+    }
+    if (manifest.header.artifact !== 'processor.h') {
+      throw new Error(`Processor manifest header must be processor.h, got ${manifest.header.artifact}`)
+    }
+    header = manifest.header
+  }
+
+  return { version: manifest.version, header, targets: byTarget }
 }
 
 /** Rejects a release that does not publish every supported variant. */

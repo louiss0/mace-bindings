@@ -54,6 +54,29 @@ test('verifies an artifact against its pinned checksum', async () => {
   assert.throws(() => verifyArtifact('windows-amd64', entry, Buffer.from('tampered')), /Checksum mismatch/)
 })
 
+test('parses and verifies the canonical processor header when published', async () => {
+  const { parseManifest, verifyArtifact } = await loadModule()
+  const header = Buffer.from('canonical processor header')
+  const digest = createHash('sha256').update(header).digest('hex')
+  const manifest = parseManifest({
+    version: '1.2.3',
+    header: { artifact: 'processor.h', sha256: digest },
+    targets: [],
+  })
+
+  assert.equal(manifest.header.artifact, 'processor.h')
+  assert.deepEqual(verifyArtifact('processor.h', manifest.header, header), header)
+  assert.throws(() => verifyArtifact('processor.h', manifest.header, Buffer.from('tampered')), /Checksum mismatch/)
+})
+
+test('rejects incomplete canonical processor header metadata', async () => {
+  const { parseManifest } = await loadModule()
+  assert.throws(
+    () => parseManifest({ version: '1.2.3', header: { artifact: 'processor.h' }, targets: [] }),
+    /header is incomplete/,
+  )
+})
+
 test('derives platform filenames and download URLs from the release tag', async () => {
   const { filenameForTarget, releaseUrl } = await loadModule()
   assert.equal(filenameForTarget('darwin-arm64'), 'libmace_processor.dylib')

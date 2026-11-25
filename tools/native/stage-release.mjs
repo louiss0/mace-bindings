@@ -53,6 +53,16 @@ if (manifest.version !== requested) {
   throw new Error(`Processor release ${requested} publishes version ${manifest.version}`)
 }
 
+if (manifest.header) {
+  const header = verifyArtifact(
+    'processor.h',
+    manifest.header,
+    await download(releaseUrl(requested, manifest.header.artifact)),
+  )
+  await writeFile(join('tools', 'native', 'processor.h'), header)
+  console.log(`Staged processor.h from processor v${requested}`)
+}
+
 const targets = requestedTargets.length > 0 ? requestedTargets : [...manifest.targets.keys()]
 for (const target of targets) {
   const entry = manifest.targets.get(target)
