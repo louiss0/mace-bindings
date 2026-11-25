@@ -1,7 +1,7 @@
 {
-  "version": "0.1.1",
+  "version": "0.1.3",
   "repository": "louiss0/mace",
-  "release": "processor/v0.1.1",
-  "manifestSha256": "5fbeb82b98e4dbb5cd8eb4dfed036f2c76c7e72fc898b7df4179f6b812919192",
+  "release": "processor/v0.1.3",
+  "manifestSha256": "d8797296a858c74709e4ea3bfbd3acb69c4ee861a12fdeb7c19cb90060481d7c",
   "note": "The bindings are always built against this processor release. stage-release.mjs verifies the manifest against manifestSha256 before it trusts any digest, so a replaced manifest is rejected. Bump all three fields together after a new processor release."
 }
